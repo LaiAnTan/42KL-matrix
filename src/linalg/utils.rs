@@ -2,6 +2,8 @@ use std::fmt::Display;
 use std::fmt::Result;
 use core::ops::{Mul, Add, Index, IndexMut};
 
+use num_traits::{MulAdd, Float};
+
 use crate::linalg::{Matrix, Vector};
 
 impl<K> Display for Matrix<K>
@@ -164,18 +166,28 @@ where
 
 }
 
-// generic fused-multiply-accumulate because rust only has f32 and f64 variants
-pub trait MulAdd
+// generic fused-multiply-accumulate for Vector<K> and Matrix<K> using num_traits::MulAdd
+
+impl<K> MulAdd<K, Vector<K>> for Vector<K>
+where
+    K: Float,
 {
-    fn mul_add(&self, a: Self, b: Self) -> Self;
+    type Output = Self;
+
+    fn mul_add(self, a: K, b: Self) -> Self
+    {
+        self * a + b
+    }
 }
 
-impl<K> MulAdd for K
+impl<K> MulAdd<K, Matrix<K>> for Matrix<K>
 where
-    K: Add<Output = K> + Mul<Output = K> + Clone + Copy,
+    K: Float,
 {
-    fn mul_add(&self, a: Self, b: Self) -> Self
+    type Output = Self;
+
+    fn mul_add(self, a: K, b: Self) -> Self
     {
-        *self * a + b
+        self * a + b
     }
 }

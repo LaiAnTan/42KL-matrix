@@ -1,14 +1,15 @@
 
 use std::ops::{Add, Mul, Sub};
 use num_traits::Float;
+use num_traits::MulAdd;
 
-use crate::linalg::{Vector, Matrix, errors, utils::MulAdd};
+use crate::linalg::{Vector, Matrix, errors};
 
 // --- ex01: Linear Combination ---
 
 pub fn linear_combination<K>(u: &[Vector<K>], coefs: &[K]) -> Result<Vector<K>, errors::VectorError>
 where
-    K: Add<Output = K> + Mul<Output = K> + Clone + Copy + Default,
+    K: Clone + Copy + Default + MulAdd<K, K, Output = K>,
 {
     if u.len() != coefs.len() && !u.iter().all(|vec| vec.size == u[0].size)
     {
@@ -33,14 +34,44 @@ where
 
 pub fn lerp<V, T>(u: V, v: V, t: T) -> Result<V, ()>
 where
-    V: Sub<V> + Add<Output = V> + Mul<T, Output = V> + Clone,
+    V: Sub<V, Output = V> + MulAdd<T, V, Output = V> + Clone,
     <V as Sub>::Output: Mul<T, Output = V>,
     T: Float,
 {
-    Ok((v - u.clone()) * t + u)
+    Ok((v - u.clone()).mul_add(t, u))
 }
 
+// need to figure out how to use mul_add here because fuck i cannot find out how to
+// create another implementation for mul_add(self, Vector<K>, Vector<K>)
+
+/*
+V: Sub<V, Output = V>: generic type V must be able to subtract generic type V, producing an output of generic type V
+<V as Sub>::Output: Mul<T, Output = V>, The output of subtracting genereic type V must be able to multiply generic type T to produce output of generic type V
+*/
+
 // --- ex03: Dot Product ---
+
+impl<K> Vector<K>
+where
+    K: MulAdd<K, K, Output = K> + Clone + Copy + Default,
+{
+    pub fn dot(&self, v: Vector<K>) -> Result<K, errors::VectorError>
+    {
+        if self.size != v.size
+        {
+            return Err(errors::VectorError)
+        }
+
+        let mut result = Default::default();
+
+        for (&i, &j) in self.store.iter().zip(v.store.iter())
+        {
+            result = i.mul_add(j, result);
+        }
+
+        Ok(result)
+    }
+}
 
 // --- ex04: Norm ---
 
@@ -113,6 +144,17 @@ mod tests
         let m2 = Matrix::from([[20.,10.], [30., 40.]]);
 
         assert_eq!(lerp(m1, m2, 0.5)?.store, [[11., 5.5], [16.5, 22.]]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_dot_product() -> Result<(), errors::VectorError>
+    {
+        let u = Vector::from([0., 0.,]);
+        let v = Vector::from([1., 1.]);
+
+        assert_relative_eq!(u.dot(v)?, 0.0);
 
         Ok(())
     }

@@ -5,6 +5,72 @@ use crate::linalg::errors::{MatrixError, VectorError};
 
 // --- ex00: Add, Subtract, Scale ---
 
+// overload unary addition: m1 + m2
+impl<K> Add< Matrix<K> > for Matrix<K>
+where
+    K: Add<Output = K> + Clone + Copy,
+{
+    type Output = Matrix<K>;
+
+    fn add(self, rhs: Self) -> Matrix<K>
+    {
+        assert_eq!((self.rows, self.columns), (rhs.rows, rhs.columns), "Matrix must be same shape to add");
+
+        Self
+        { 
+            rows: self.rows,
+            columns: self.columns,
+            store: self.store.iter().zip(rhs.store.iter())
+                    .map(|(row_1, row_2)| row_1.iter().zip(row_2.iter())
+                        .map(|(&a, &b)| a + b).collect())
+                    .collect()
+        }
+    }
+}
+
+// overload unary subtraction: m1 - m2
+impl<K> Sub< Matrix<K> > for Matrix<K>
+where
+    K: Sub<Output = K> + Clone + Copy,
+{
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self
+    {
+        assert_eq!((self.rows, self.columns), (rhs.rows, rhs.columns), "Matrix must be same shape to subtract");
+
+        Self
+        { 
+            rows: self.rows,
+            columns: self.columns,
+            store: self.store.iter().zip(rhs.store.iter())
+                    .map(|(row_1, row_2)| row_1.iter().zip(row_2.iter())
+                        .map(|(&a, &b)| a - b).collect())
+                    .collect()
+        }
+    }
+}
+
+// overload scalar multiplication: m1 * 3 (no bidirectional scaling)
+impl<K> Mul<K> for Matrix<K>
+where
+    K: Mul<Output = K> + Clone + Copy,
+{
+    type Output = Self;
+
+    fn mul(self, rhs: K) -> Self
+    {
+        Self
+        { 
+            rows: self.rows,
+            columns: self.columns,
+            store: self.store.iter()
+                    .map(|row| row.iter().map(|&x| x * rhs).collect())
+                    .collect()
+        }
+    }
+}
+
 // function form
 impl<K> Matrix<K>
 where

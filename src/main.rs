@@ -2,10 +2,9 @@
 mod linalg;
 
 // need to implement add/sub/mul assign
-use crate::linalg::Vector;
-use crate::linalg::Matrix;
+use crate::linalg::{Matrix, Vector, errors, alg};
 
-fn main() -> Result<(), linalg::errors::VectorError> // main must return result for error propogation to be legal
+fn main() -> Result<(), errors::VectorError> // main must return result for error propogation to be legal
 {
     let m = Vector::<i32> {size: 3, store: vec![2, -2, 3]};
 
@@ -35,6 +34,13 @@ fn main() -> Result<(), linalg::errors::VectorError> // main must return result 
     // [5.0, 2.0]
 
     println!("Accessing element 1, 1: {}", u[1][1]);
+
+    let v1 = Vector::from([2., 1.]);
+    let v2 = Vector::from([4., 2.]);
+
+    let res = alg::lerp(v1, v2, 0.3);
+
+    println!("{}", res.unwrap());
     
     Ok(())
 }

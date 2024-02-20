@@ -2,7 +2,8 @@ use std::fmt::Display;
 use std::fmt::Result;
 use core::ops::{Mul, Add, Index, IndexMut};
 
-use num_traits::{MulAdd, Float};
+use num::traits::{MulAdd, Float};
+
 
 use crate::linalg::{Matrix, Vector};
 
@@ -166,8 +167,7 @@ where
 
 }
 
-// generic fused-multiply-accumulate for Vector<K> and Matrix<K> using num_traits::MulAdd
-
+// generic fused-multiply-accumulate for Vector<K> and Matrix<K> using num::traits::MulAdd
 impl<K> MulAdd<K, Vector<K>> for Vector<K>
 where
     K: Float,

@@ -1,7 +1,10 @@
+#![allow(dead_code)]
+
 pub mod ops;
 pub mod utils;
 pub mod errors;
 pub mod alg;
+
 
 #[derive(Debug, Clone)]
 pub struct Matrix<K: Clone>

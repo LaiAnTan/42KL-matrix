@@ -1,7 +1,6 @@
 
-use std::ops::{Add, Mul, Sub};
-use num_traits::Float;
-use num_traits::MulAdd;
+use std::ops::{Mul, Sub};
+use num::traits::{Float, MulAdd};
 
 use crate::linalg::{Vector, Matrix, errors};
 
@@ -41,10 +40,9 @@ where
     Ok((v - u.clone()).mul_add(t, u))
 }
 
-// need to figure out how to use mul_add here because fuck i cannot find out how to
-// create another implementation for mul_add(self, Vector<K>, Vector<K>)
-
 /*
+Notes:
+
 V: Sub<V, Output = V>: generic type V must be able to subtract generic type V, producing an output of generic type V
 <V as Sub>::Output: Mul<T, Output = V>, The output of subtracting genereic type V must be able to multiply generic type T to produce output of generic type V
 */
@@ -74,6 +72,26 @@ where
 }
 
 // --- ex04: Norm ---
+
+impl<V> Vector<V>
+where
+    V: Clone,
+{
+    pub fn norm_1(&mut self) -> f32
+    {
+        self.store.iter().map(|x| x.abs()).sum()
+    }
+
+    pub fn norm(&mut self) -> f32
+    {
+        
+    }
+
+    pub fn norm_inf(&mut self) -> f32
+    {
+        
+    }
+}
 
 // --- ex05: Cosine ---
 
@@ -155,6 +173,16 @@ mod tests
         let v = Vector::from([1., 1.]);
 
         assert_relative_eq!(u.dot(v)?, 0.0);
+
+        let u = Vector::from([1., 1.]);
+        let v = Vector::from([1., 1.]);
+
+        assert_relative_eq!(u.dot(v)?, 2.0);
+
+        let u = Vector::from([-1., 6.]);
+        let v = Vector::from([3., 2.]);
+
+        assert_relative_eq!(u.dot(v)?, 9.0);
 
         Ok(())
     }

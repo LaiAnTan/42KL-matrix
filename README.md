@@ -2,8 +2,7 @@
 
 A linear algebra module written in Rust.
 
-### Dependencies
+## Dependencies
 
 approx: for floating point approx assertion macros (relative_eq!)
-num: for complex number type support
-num-traits: for generic number trait bounds
+num: for generic number trait bounds (Float),generic MulAdd trait, complex number type support

@@ -53,6 +53,14 @@ where
     }
 }
 
+impl<K> IndexMut<usize> for Matrix<K>
+where
+    K: Clone,
+{
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.store[index]
+    }
+}
 
 impl<K: Clone> Matrix<K>
 where
@@ -61,6 +69,18 @@ where
     pub fn shape(&self) -> (usize, usize)
     {
         (self.rows, self.columns)
+    }
+
+    pub fn is_square(&self) -> bool
+    {
+        if self.rows == self.columns
+        {
+            false
+        }
+        else
+        {
+            true
+        }
     }
 
     pub fn to_vector(&self) -> Vector<K>
@@ -140,16 +160,6 @@ where
     pub fn size(&self) -> usize
     {
         self.size
-    }
-
-    pub fn len(&self) -> f64
-    where
-        K: Mul<Output = K> + Add<Output = K> + std::convert::Into<f64> + std::iter::Sum + Clone
-    {
-        (self.store.iter()
-            .map(|x| Into::<f64>::into(x.clone()).powi(2))
-            .sum::<f64>()
-        ).sqrt()
     }
 
     // vector to matrix

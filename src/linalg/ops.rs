@@ -125,9 +125,6 @@ where
 
 // Vector Operations
 
-// --- ex00: Add, Subtract, Scale ---
-
-
 // overload unary addition: v1 + v2
 impl<K> Add< Vector<K> > for Vector<K>
 where

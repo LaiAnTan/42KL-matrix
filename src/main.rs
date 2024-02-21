@@ -12,7 +12,7 @@ fn main() -> Result<(), errors::VectorError> // main must return result for erro
 
     let test = Vector::<i32>::from([2, 3, 4]);
 
-    println!("Vector: {}, Length: {}", m, m.len());
+    println!("Vector: {}", m);
     println!("Test: {}, Size: {}", test, test.size());
     println!("Out: {}", m + test);
 
@@ -41,6 +41,10 @@ fn main() -> Result<(), errors::VectorError> // main must return result for erro
     let res = alg::lerp(v1, v2, 0.3);
 
     println!("{}", res.unwrap());
+
+    let u = Vector::from([1., 2., 3.]);
+
+    println!("{} {} {}", u.norm(), u.norm_1(), u.norm_inf());
     
     Ok(())
 }

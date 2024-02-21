@@ -1,15 +1,20 @@
 
-use std::{iter, ops::{Mul, Sub, Neg}};
+use std::{iter::Sum, ops::{Mul, Sub, Neg, Div}};
 use num::traits::{Float, MulAdd, Zero, float::TotalOrder};
 
 
 use crate::linalg::{Vector, Matrix, errors};
 
+use super::errors::VectorError;
+
 // --- ex01: Linear Combination ---
 
 pub fn linear_combination<K>(u: &[Vector<K>], coefs: &[K]) -> Result<Vector<K>, errors::VectorError>
 where
-    K: Clone + Copy + Zero + MulAdd<K, K, Output = K>,
+    K: Clone 
+        + Copy
+        + Zero
+        + MulAdd<K, K, Output = K>,
 {
     if u.len() != coefs.len() && !u.iter().all(|vec| vec.size == u[0].size)
     {
@@ -34,7 +39,9 @@ where
 
 pub fn lerp<V, T>(u: V, v: V, t: T) -> Result<V, ()>
 where
-    V: Sub<V, Output = V> + MulAdd<T, V, Output = V> + Clone,
+    V: Clone
+        +Sub<V, Output = V> 
+        + MulAdd<T, V, Output = V>,
     <V as Sub>::Output: Mul<T, Output = V>,
     T: Float,
 {
@@ -52,9 +59,11 @@ V: Sub<V, Output = V>: generic type V must be able to subtract generic type V, p
 
 impl<K> Vector<K>
 where
-    K: MulAdd<K, K, Output = K> + Clone + Copy + Zero,
+    K: Clone + Copy + Zero
 {
-    pub fn dot(&self, v: Vector<K>) -> Result<K, errors::VectorError>
+    pub fn dot(&self, v: &Vector<K>) -> Result<K, errors::VectorError>
+    where
+        K: MulAdd<K, K, Output = K>,
     {
         if self.size != v.size
         {
@@ -75,7 +84,7 @@ where
 // --- ex04: Norm ---
 
 // fast inverse square root (might make this generic later)
-pub fn fi_sqrt(number: &f32) -> f32
+fn fi_sqrt(number: &f32) -> f32
 {
     let i = number.to_bits();
 
@@ -88,48 +97,83 @@ pub fn fi_sqrt(number: &f32) -> f32
 }
 
 // generic abs
-pub fn abs<V>(number: V) -> Result<V, ()>
+fn abs<V>(number: V) -> Result<V, ()>
 where
-    V: Neg<Output = V> + Zero + TotalOrder,
+    V: Neg<Output = V> + Zero + PartialOrd,
 {
     match number
     {
-        number if number.total_cmp(&V::zero()).is_lt() => Ok(-number),
+        number if number < V::zero() => Ok(-number),
         _ => Ok(number),
     }
 }
 
 impl<V> Vector<V>
 where
-    V: Clone + Copy + Zero + TotalOrder + Mul<f32, Output = V> + Mul<V, Output = V>+ Neg<Output = V> + iter::Sum<V>,
-    f32: iter::Sum<V>,
+    V: Clone
+        + Copy
+        + Zero
+        + Mul<V, Output = V>
+        + Neg<Output = V>
 {
-    pub fn norm_1(&self) -> V
+    pub fn norm_1(&self) -> Result<V, VectorError>
+    where
+        V: PartialOrd
+            + Sum<V>
     {
-        self.store.iter().map(|&x| abs(x)
-            .unwrap_or_else(|()| panic!("norm_1 failed"))).sum()
+        Ok(self.store.iter()
+            .filter_map(|&x| abs(x).ok())
+            .sum())
     }
 
-    pub fn norm(&self) -> V
+    pub fn norm(&self) -> Result<V, VectorError>
     where
+        V: Sum<V>,
         f32: Into<V>
+            + Sum<V>,
     {
-        let magnitude_squared_sum = self.store.iter().map(|&x| x * x).sum();
+        let magnitude_squared_sum = self.store.iter().map(|&x| x * x)
+                                            .sum();
 
         let inv_sqrt = fi_sqrt(&magnitude_squared_sum);
 
-        (inv_sqrt * magnitude_squared_sum).into()
+        Ok((inv_sqrt * magnitude_squared_sum).into())
     }
 
-    pub fn norm_inf(&self) -> V
+    pub fn norm_inf(&self) -> Result<V, VectorError>
+    where
+        V: TotalOrder 
+            + PartialOrd
     {
-        self.store.iter().map(|&x| abs(x).unwrap())
-            .max_by(|&a, b| a.total_cmp(b))
-            .unwrap_or_else(|| panic!("norm_inf failed"))
+        // calculate absolute maximum
+        let result = self.store.iter()
+            .filter_map(|&x| abs(x).ok())
+            .max_by(|&a, b| a.total_cmp(b));
+
+        match result
+        {
+            Some(x) => Ok(x),
+            None => Err(VectorError), // this should never happen but just in case
+        }
     }
 }
 
 // --- ex05: Cosine ---
+
+pub fn angle_cos<K>(u: &Vector<K>, v: &Vector<K>) -> Result<K, VectorError>
+where
+    K: Clone 
+        + Copy 
+        + Zero 
+        + MulAdd<Output = K> 
+        + Mul<K, Output = K> 
+        + Neg<Output = K> 
+        + Div<K, Output = K>
+        + Sum<K>,
+    f32: Into<K> + Sum<K>,
+{
+    Ok(u.dot(v)? / (u.norm()? * v.norm()?))
+}
 
 // --- ex06: Cross Product ---
 
@@ -155,6 +199,8 @@ where
 #[cfg(test)]
 mod tests
 {
+    use crate::linalg::errors::VectorError;
+
     use super::{Vector, Matrix, errors};
     extern crate approx; // for floating point relative assertions
 
@@ -208,17 +254,17 @@ mod tests
         let u = Vector::from([0., 0.,]);
         let v = Vector::from([1., 1.]);
 
-        assert_eq!(u.dot(v)?, 0.0);
+        assert_eq!(u.dot(&v)?, 0.0);
 
         let u = Vector::from([1., 1.]);
         let v = Vector::from([1., 1.]);
 
-        assert_eq!(u.dot(v)?, 2.0);
+        assert_eq!(u.dot(&v)?, 2.0);
 
         let u = Vector::from([-1., 6.]);
         let v = Vector::from([3., 2.]);
 
-        assert_eq!(u.dot(v)?, 9.0);
+        assert_eq!(u.dot(&v)?, 9.0);
 
         Ok(())
     }
@@ -231,19 +277,52 @@ mod tests
     }
 
     #[test]
-    fn test_norms() -> Result<(), errors::VectorError>
+    fn test_norms() -> Result<(), VectorError>
     {
         let u = Vector::from([0., 0., 0.]);
 
-        assert_eq!([u.norm_1(), u.norm(), u.norm_inf()], [0., 0., 0.]);
+        assert_eq!([u.norm_1()?, u.norm()?, u.norm_inf()?], [0., 0., 0.]);
 
         let u = Vector::from([1., 2., 3.]);
 
-        assert_eq!([u.norm_1(), round_to(u.norm(), 6.), u.norm_inf()], [6., 3.741_657, 3.]);
+        assert_eq!([u.norm_1()?, round_to(u.norm()?, 6.), u.norm_inf()?], [6., 3.741_657, 3.]);
 
         let u = Vector::from([-1., -2.]);
 
-        assert_eq!([u.norm_1(), round_to(u.norm(), 6.), u.norm_inf()], [3., 2.236_068, 2.]);
+        assert_eq!([u.norm_1()?, round_to(u.norm()?, 6.), u.norm_inf()?], [3., 2.236_068, 2.]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_cos_angle() -> Result<(), VectorError>
+    {
+        use super::angle_cos;
+
+        let u = Vector::from([1., 0.]);
+        let v = Vector::from([1., 0.]);
+
+        assert_eq!(round_to(angle_cos(&u, &v)?, 1.), 1.);
+
+        let u = Vector::from([1., 0.]);
+        let v = Vector::from([0., 1.]);
+
+        assert_eq!(round_to(angle_cos(&u, &v)?, 1.), 0.);
+
+        let u = Vector::from([-1., 1.]);
+        let v = Vector::from([ 1., -1.]);
+
+        assert_eq!(round_to(angle_cos(&u, &v)?, 1.), -1.);
+
+        let u = Vector::from([2., 1.]);
+        let v = Vector::from([4., 2.]);
+
+        assert_eq!(round_to(angle_cos(&u, &v)?, 1.), 1.);
+
+        let u = Vector::from([1., 2., 3.]);
+        let v = Vector::from([4., 5., 6.]);
+
+        assert_eq!(angle_cos(&u, &v)?, 0.974_631_9);
 
         Ok(())
     }

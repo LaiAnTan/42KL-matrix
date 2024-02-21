@@ -44,7 +44,7 @@ fn main() -> Result<(), errors::VectorError> // main must return result for erro
 
     let u = Vector::from([1., 2., 3.]);
 
-    println!("{} {} {}", u.norm(), u.norm_1(), u.norm_inf());
+    println!("{} {} {}", u.norm()?, u.norm_1()?, u.norm_inf()?);
     
     Ok(())
 }

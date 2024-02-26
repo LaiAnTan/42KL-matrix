@@ -1,7 +1,5 @@
-
 use std::{iter::Sum, ops::{Mul, Sub, Neg, Div}};
 use num::traits::{Float, MulAdd, Zero, float::TotalOrder};
-
 
 use crate::linalg::{Vector, Matrix, errors};
 
@@ -160,22 +158,52 @@ where
 
 // --- ex05: Cosine ---
 
-pub fn angle_cos<K>(u: &Vector<K>, v: &Vector<K>) -> Result<K, VectorError>
+impl<K> Vector<K>
 where
-    K: Clone 
-        + Copy 
-        + Zero 
-        + MulAdd<Output = K> 
-        + Mul<K, Output = K> 
-        + Neg<Output = K> 
-        + Div<K, Output = K>
-        + Sum<K>,
-    f32: Into<K> + Sum<K>,
+    K: Clone
+        + Copy
+        + Zero
 {
-    Ok(u.dot(v)? / (u.norm()? * v.norm()?))
+    pub fn angle_cos(&self, v: &Vector<K>) -> Result<K, VectorError>
+    where
+        K: MulAdd<Output = K> 
+            + Mul<K, Output = K> 
+            + Neg<Output = K> 
+            + Div<K, Output = K>
+            + Sum<K>,
+        f32: Into<K> + Sum<K>,
+    {
+        Ok(self.dot(v)? / (self.norm()? * v.norm()?))
+    }
 }
 
 // --- ex06: Cross Product ---
+
+impl<K> Vector<K>
+where
+    K: Clone
+        + Copy
+        + Zero
+{
+    pub fn cross_product(&self, v: &Vector<K>) -> Result<Vector<K>, VectorError>
+    where
+        K: Mul<K, Output = K>
+            + Sub<K, Output = K>,
+    {
+        if self.size != 3 && v.size() != 3
+        {
+            return Err(VectorError)
+        }
+        
+        let mut store = vec![K::zero(); 3];
+
+        store[0] = (self[1] * v[2]) - (self[2] * v[1]);
+        store[1] = (self[2] * v[0]) - (self[0] * v[2]);
+        store[2] = (self[0] * v[1]) - (self[1] * v[0]);
+
+        Ok(Vector { size: self.size, store })
+    }
+}
 
 // --- ex07: Linear Map, Matrix Multiplication ---
 
@@ -196,6 +224,7 @@ where
 // --- ex15: Complex Vector Spaces ---
 
 // unit tests
+
 #[cfg(test)]
 mod tests
 {
@@ -297,32 +326,52 @@ mod tests
     #[test]
     fn test_cos_angle() -> Result<(), VectorError>
     {
-        use super::angle_cos;
 
         let u = Vector::from([1., 0.]);
         let v = Vector::from([1., 0.]);
 
-        assert_eq!(round_to(angle_cos(&u, &v)?, 1.), 1.);
+        assert_eq!(round_to(u.angle_cos(&v)?, 1.), 1.);
 
         let u = Vector::from([1., 0.]);
         let v = Vector::from([0., 1.]);
 
-        assert_eq!(round_to(angle_cos(&u, &v)?, 1.), 0.);
+        assert_eq!(round_to(u.angle_cos(&v)?, 1.), 0.);
 
         let u = Vector::from([-1., 1.]);
         let v = Vector::from([ 1., -1.]);
 
-        assert_eq!(round_to(angle_cos(&u, &v)?, 1.), -1.);
+        assert_eq!(round_to(u.angle_cos(&v)?, 1.), -1.);
 
         let u = Vector::from([2., 1.]);
         let v = Vector::from([4., 2.]);
 
-        assert_eq!(round_to(angle_cos(&u, &v)?, 1.), 1.);
+        assert_eq!(round_to(u.angle_cos(&v)?, 1.), 1.);
 
         let u = Vector::from([1., 2., 3.]);
         let v = Vector::from([4., 5., 6.]);
 
-        assert_eq!(angle_cos(&u, &v)?, 0.974_631_9);
+        assert_eq!(u.angle_cos(&v)?, 0.974_631_9);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_cross_product() -> Result<(), VectorError>
+    {
+        let u = Vector::from([0., 0., 1.]);
+        let v = Vector::from([1., 0., 0.]);
+
+        assert_eq!(u.cross_product(&v)?.store, [0., 1., 0.]);
+
+        let u = Vector::from([1., 2., 3.]);
+        let v = Vector::from([4., 5., 6.]);
+        
+        assert_eq!(u.cross_product(&v)?.store, [-3., 6., -3.]);
+
+        let u = Vector::from([4., 2., -3.]);
+        let v = Vector::from([-2., -5., 16.]);
+
+        assert_eq!(u.cross_product(&v)?.store, [17., -58., -16.]);
 
         Ok(())
     }

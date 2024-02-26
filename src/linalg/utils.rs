@@ -1,6 +1,6 @@
 use std::fmt::Display;
 use std::fmt::Result;
-use core::ops::{Mul, Add, Index, IndexMut};
+use core::ops::{Index, IndexMut};
 
 use num::traits::{MulAdd, Float};
 

@@ -11,7 +11,7 @@ pub struct Matrix<K: Clone>
 {
     pub rows: usize,
     pub columns: usize,
-    pub store: Vec< Vec<K> >
+    pub store: Vec< Vec<K> > // vector containing vectors(rows)
 }
 
 #[derive(Debug, Clone)]

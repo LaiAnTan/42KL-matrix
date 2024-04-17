@@ -205,8 +205,6 @@ where
     }
 }
 
-// --- ex07: Linear Map, Matrix Multiplication ---
-
 // --- ex09: Trace  ---
 
 // --- ex09: Transpose ---

@@ -62,7 +62,7 @@ where
     }
 }
 
-impl<K: Clone> Matrix<K>
+impl<K> Matrix<K>
 where
     K: Clone,
 {
@@ -92,6 +92,12 @@ where
 
         Vector { size: self.rows, store}
     }
+
+    pub fn col(&self, index) -> Vec<K>
+    {
+        
+    }
+
 }
 
 // Vector Utilities

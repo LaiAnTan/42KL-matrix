@@ -234,6 +234,65 @@ where
     }
 }
 
+// --- ex07: Linear Map, Matrix Multiplication ---
+
+impl<K> Mul<Vector<K>> for Matrix<K>
+where
+    K: Clone
+{
+    type Output = Vector<K>;
+
+    fn mul(self, rhs: Vector<K>) -> Self::Output
+    {
+
+    }
+}
+
+impl<K> Mul<Matrix<K>> for Matrix<K>
+where
+    K: Clone
+{
+    type Output = Self;
+
+    fn mul(self, rhs: Matrix<K>) -> Self::Output
+    {
+
+    }
+} 
+
+
+
+// function form
+impl<K> Matrix<K>
+where
+    K: Clone
+{
+    fn mul_vec(&mut self, vec: Vector<K>) -> Result<Vector<K>, VectorError>
+    where
+        K: Mul<Output = K> + Clone + Copy,
+    {
+
+    }
+
+    fn mul_mat(&mut self, mat: Matrix<K>) -> Result<Matrix<K>, MatrixError>
+    where
+        K: Mul<Output = K> + Clone + Copy,
+    {
+        if self.columns != mat.rows
+        {
+            return Err(MatrixError)
+        }
+        
+        // i need columns instead of rows
+        self.store = self.store.iter().zip(mat.store.iter())
+            .map(|(row_1, row_2)| row_1.iter().zip(row_2.iter())
+                .map(|(&a, &b)| a - b).collect())
+            .collect();
+
+        Ok(self.clone())
+    }
+}
+
 // unit tests
 #[cfg(test)]
 mod tests

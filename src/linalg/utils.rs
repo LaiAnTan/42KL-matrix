@@ -93,9 +93,9 @@ where
         Vector { size: self.rows, store}
     }
 
-    pub fn col(&self, index) -> Vec<K>
+    pub fn col(&self, index: usize) -> Vec<K>
     {
-        
+        self.store.iter().map(|row| row[index].clone()).collect()
     }
 
 }
@@ -129,6 +129,18 @@ where
         Vector::<K> {size: value.len(), store: value.to_vec()}
     }
 }
+
+
+// from trait for Vec<K> to vector 
+impl<K> From<Vec<K>> for Vector<K>
+where
+    K: Clone,
+{
+    fn from(value: Vec<K>) -> Self {
+        Vector::<K> {size: value.len(), store: value}
+    }
+}
+
 
 // index overload
 impl<K> Index<usize> for Vector<K>

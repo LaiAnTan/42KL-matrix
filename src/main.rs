@@ -28,7 +28,7 @@ fn main() -> Result<(), errors::VectorError> // main must return result for erro
     println!("u: {:?}", u);
     println!("v: {:?}", v);
 
-    let _ = u.add(&v);
+    let _ = u.mul_mat(&v);
     println!("{}", u);
     // [-6.0, -2.0]
     // [5.0, 2.0]

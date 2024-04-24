@@ -1,7 +1,7 @@
 use std::{iter::Sum, ops::{Mul, Sub, Neg, Div}};
 use num::traits::{Float, MulAdd, Zero, float::TotalOrder};
 
-use crate::linalg::{Vector, Matrix, errors};
+use super::{Vector, Matrix, errors};
 
 use super::errors::VectorError;
 

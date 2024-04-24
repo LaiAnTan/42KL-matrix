@@ -1,7 +1,7 @@
 use std::{iter::Sum, ops::{Mul, Sub, Neg, Div}};
 use num::traits::{Float, MulAdd, Zero, float::TotalOrder};
 
-use super::{Vector, Matrix, errors};
+use super::{errors::{self, MatrixError}, Matrix, Vector};
 
 use super::errors::VectorError;
 
@@ -207,6 +207,28 @@ where
 
 // --- ex09: Trace  ---
 
+impl<K> Matrix::<K>
+where
+    K: Clone
+        + Copy
+        + Zero
+{
+    pub fn trace(&self) -> Result<K, MatrixError>
+    where
+        K: std::iter::Sum
+    {
+        if !self.is_square()
+        {
+            return Err(MatrixError)
+        }
+
+        let trace: K = self.store.iter().enumerate()
+            .map(|(i, row)| row[i])
+            .sum();
+
+        Ok(trace)
+    }
+}
 // --- ex09: Transpose ---
 
 // --- ex10: Row - Echelon Form---
@@ -226,7 +248,7 @@ where
 #[cfg(test)]
 mod tests
 {
-    use crate::linalg::errors::VectorError;
+    use crate::linalg::errors::{MatrixError, VectorError};
 
     use super::{Vector, Matrix, errors};
     extern crate approx; // for floating point relative assertions
@@ -370,6 +392,36 @@ mod tests
         let v = Vector::from([-2., -5., 16.]);
 
         assert_eq!(u.cross_product(&v)?.store, [17., -58., -16.]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_trace() -> Result<(), MatrixError>
+    {
+
+        let u = Matrix::from([
+            [1., 0.],
+            [0., 1.],
+            ]);
+
+        assert_eq!(u.trace()?, 2.0);
+
+        let u = Matrix::from([
+            [2., -5., 0.],
+            [4., 3., 7.],
+            [-2., 3., 4.],
+            ]);
+
+        assert_eq!(u.trace()?, 9.0);
+
+        let u = Matrix::from([
+            [-2., -8., 4.],
+            [1., -23., 4.],
+            [0., 6., 4.],
+            ]);
+
+        assert_eq!(u.trace()?, -21.0);
 
         Ok(())
     }

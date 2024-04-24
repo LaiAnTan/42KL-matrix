@@ -73,7 +73,7 @@ where
 
     pub fn is_square(&self) -> bool
     {
-        self.rows != self.columns
+        self.rows == self.columns
     }
 
     pub fn to_vector(&self) -> Vector<K>

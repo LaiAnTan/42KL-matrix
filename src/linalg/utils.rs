@@ -1,3 +1,4 @@
+use std::clone;
 use std::fmt::Display;
 use std::fmt::Result;
 use core::ops::{Index, IndexMut};
@@ -59,6 +60,24 @@ where
 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.store[index]
+    }
+}
+
+// PartialEq trait for comparing Matrices
+impl<K> PartialEq for Matrix<K>
+where
+    K: Clone + std::cmp::PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        
+        if self.shape() != other.shape()
+        {
+            return false
+        }
+
+        self.store.iter().zip(other.store.iter())
+            .all(|(row_self, row_other)| row_self == row_other)
+
     }
 }
 
@@ -186,6 +205,22 @@ where
         Matrix { rows: self.size, columns: 1, store}
     }
 
+}
+
+// PartialEq trait for comparing Vectors
+impl<K> PartialEq for Vector<K>
+where
+    K: Clone + std::cmp::PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        
+        if self.size() != other.size()
+        {
+            return false
+        }
+
+        self.store == other.store
+    }
 }
 
 // generic fused-multiply-accumulate for Vector<K> and Matrix<K> using num::traits::MulAdd

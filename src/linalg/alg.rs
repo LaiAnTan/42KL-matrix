@@ -38,7 +38,7 @@ where
 pub fn lerp<V, T>(u: V, v: V, t: T) -> Result<V, ()>
 where
     V: Clone
-        +Sub<V, Output = V> 
+        + Sub<V, Output = V> 
         + MulAdd<T, V, Output = V>,
     <V as Sub>::Output: Mul<T, Output = V>,
     T: Float,
@@ -229,9 +229,48 @@ where
         Ok(trace)
     }
 }
+
 // --- ex09: Transpose ---
 
+impl<K> Matrix::<K>
+where
+    K: Clone
+        + Copy
+        + Zero
+{
+    pub fn transpose(&mut self) -> Result<Matrix<K>, MatrixError>
+    where
+        K: std::iter::Sum
+    {
+        if !self.is_square()
+        {
+            return Err(MatrixError)
+        }
+
+        self.store = (0..self.columns)
+            .map(|index| self.col(index))
+            .collect();
+
+        Ok(Matrix {rows: self.rows, columns: self.columns, store: self.store.clone()})
+    }
+}
+
 // --- ex10: Row - Echelon Form---
+
+impl<K> Matrix::<K>
+where
+    K: Clone
+        + Copy
+        + Zero
+{
+
+    pub fn row_echelon(&mut self) -> Result<Matrix<K>, MatrixError>
+    {
+
+
+        Ok()
+    }
+}
 
 // --- ex11: Determinant ---
 
@@ -422,6 +461,53 @@ mod tests
             ]);
 
         assert_eq!(u.trace()?, -21.0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_transpose() -> Result<(), MatrixError>
+    {
+        let mut u = Matrix::from([
+            [1., 0.],
+            [0., 1.],
+            ]);
+
+        let u_t = Matrix::from([
+            [1., 0.],
+            [0., 1.],
+            ]);
+        
+        assert_eq!(u.transpose()?, u_t);
+
+        let mut v: Matrix<f64> = Matrix::from([
+            [2., -5., 0.],
+            [4., 3., 7.],
+            [-2., 3., 4.],
+            ]);
+
+        let v_t: Matrix<f64> = Matrix::from([
+            [2., 4., -2.],
+            [-5., 3., 3.],
+            [0., 7., 4.],
+            ]);
+        
+        assert_eq!(v.transpose()?, v_t);
+
+        let mut w = Matrix::from([
+            [-2., -8., 4.],
+            [1., -23., 4.],
+            [0., 6., 4.],
+            ]);
+
+        let w_t = Matrix::from([
+            [-2., 1., 0.],
+            [-8., -23., 6.],
+            [4., 4., 4.],
+            ]);
+
+        assert_eq!(w.transpose()?, w_t);
+
 
         Ok(())
     }

@@ -1,4 +1,3 @@
-use std::clone;
 use std::fmt::Display;
 use std::fmt::Result;
 use core::ops::{Index, IndexMut};

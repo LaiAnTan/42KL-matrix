@@ -1,5 +1,5 @@
 use std::{iter::Sum, ops::{Mul, Sub, Neg, Div}};
-use num::traits::{Float, MulAdd, Zero, float::TotalOrder};
+use num::{traits::{float::TotalOrder, Float, MulAdd, Zero, One}, FromPrimitive};
 
 use super::{errors::{self, MatrixError}, Matrix, Vector};
 
@@ -205,7 +205,7 @@ where
     }
 }
 
-// --- ex09: Trace  ---
+// --- ex08: Trace  ---
 
 impl<K> Matrix::<K>
 where
@@ -262,13 +262,108 @@ where
     K: Clone
         + Copy
         + Zero
+        + One
 {
 
-    pub fn row_echelon(&mut self) -> Result<Matrix<K>, MatrixError>
+    pub fn row_echelon(&mut self) -> Result<Matrix<K>, ()>
+    where
+        K: PartialEq + FromPrimitive + Div<Output = K> + Sub<Output = K>,
     {
+        /* 
+        Reduced row echelon form calculator using Gaussian Elimination.
+        ci => column index
+        pi => pivot index (row)
+         */
 
+        // find index of first non zero column
+        let start_ci: usize = match (0..self.columns)
+            .find(|index| self.col(*index).iter().any(|item| *item != K::zero()))
+        {
+            Some(x) => x,
+            None => return Ok(self.clone()),
+        };
 
-        Ok()
+        // find index of pivot of first non zero column
+        let mut pi = (0..self.rows)
+            .find(|index| self.col(start_ci)[*index] != K::zero())
+            .unwrap();
+
+        for ci in start_ci..self.columns
+        {
+
+            if pi == self.rows
+            {
+                break
+            }
+            
+            // if pivot is zero we perform a row swap if possible
+            if self.store[pi][ci] == K::zero()
+            {
+                match (pi + 1..self.rows).find(|&i| self.store[i][ci] != K::zero())
+                {
+                    Some(swap_row) => self.store.swap(pi, swap_row),
+                    None => continue,
+                };
+            }
+
+            // scale pivot row so that pivot == 1
+            if self.store[pi][ci] != K::zero() {
+                self.store[pi] = self.store[pi].iter()
+                    .map(|&item| item / self.store[pi][ci])
+                    .collect();
+            }
+
+            /*
+            make every row after pivot 0
+            row[ci] => element for each row below the pivot
+             */
+            let pivot_clone = self.store[pi].clone();
+
+            self.store.iter_mut()
+                .skip(pi + 1)
+                .filter(|row| row[ci] != K::zero())
+                .for_each(|row| {
+                    *row = row.iter().enumerate()
+                        // scale below pivot == 0
+                        // new row = row - (scalar * pivot row)
+                        // eg: 5 - (5 * 1) = 0
+                        .map(|(j, &ej)| ej - (row[ci] * pivot_clone[j]))
+                        .collect::<Vec<K>>();
+                });
+
+            pi += 1;
+        }
+
+        // -- reduced row echelon form starts here --
+        for ri in (1..self.rows).rev()
+        {
+
+            let pivot = match (0..self.columns).rev()
+                .find(|&ci| self.store[ri][ci] == K::one())
+                {
+                    Some(pivot) => pivot,
+                    None => continue,
+                };
+
+            if self.col(pivot)[0..ri].iter().all(|&item| item == K::zero())
+            {
+                continue;
+            }
+
+            let curr_row = self.store[ri].clone();
+
+            self.store.iter_mut()
+                .rev() // self.rows to 0
+                .skip(self.rows - ri)
+                .filter(|row| row[pivot] != K::zero())
+                .for_each(|row| {
+                    *row = row.iter().enumerate()
+                        .map(|(ci, &elem)| elem - (row[pivot] * curr_row[ci]))
+                        .collect::<Vec<K>>();
+                });
+        }
+
+        Ok(self.clone())
     }
 }
 
@@ -277,6 +372,29 @@ where
 // --- ex12: Inverse ---
 
 // --- ex13: Rank ---
+
+impl<K> Matrix::<K>
+where
+    K: Clone
+        + Copy
+        + Zero
+        + One
+{
+    pub fn rank(&mut self) -> Result<usize, ()>
+    where
+        K: PartialEq + FromPrimitive + Div<Output = K> + Sub<Output = K>,
+    {
+        let rank = self.row_echelon()?.store
+            .iter().fold(0, |acc , x| {
+                if (*x).iter().any(|&elem| elem != K::zero()) {
+                    return acc + 1;
+                }
+                acc
+        });
+
+        Ok(rank)
+    }
+}
 
 // --- ex14: Projection Matrix ---
 
@@ -509,6 +627,32 @@ mod tests
         assert_eq!(w.transpose()?, w_t);
 
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_row_echelon() -> Result<(), ()>
+    {
+        // let mut u = Matrix::from([
+        //     [8., 5., -2., 4., 28.],
+        //     [4., 2.5, 20., 4., -4.],
+        //     [8., 5., 1., 4., 17.],
+        //     ]);
+
+        // let u_ref = Matrix::from([
+        //     [1.0, 0.625, 0.0, 0.0, -12.1666667],
+        //     [0.0, 0.0, 1.0, 0.0, -3.6666667],
+        //     [0.0, 0.0, 0.0, 1.0, 29.5],
+        //     ]);
+
+        // assert_relative_eq!(u.row_echelon()?, u_ref);
+        
+        Ok(())
+    }
+
+    #[test]
+    fn test_rank() -> Result<(), ()>
+    {
         Ok(())
     }
 

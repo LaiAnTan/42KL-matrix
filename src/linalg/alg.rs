@@ -1,5 +1,5 @@
 use std::{iter::Sum, ops::{Mul, Sub, Neg, Div}};
-use num::{traits::{float::TotalOrder, Float, MulAdd, Zero, One}, FromPrimitive};
+use num::{traits::{float::TotalOrder, Float, MulAdd, Zero, One, pow}, FromPrimitive};
 
 use super::{errors::{self, MatrixError}, Matrix, Vector};
 
@@ -368,6 +368,65 @@ where
 }
 
 // --- ex11: Determinant ---
+
+impl<K> Matrix::<K>
+where
+    K: Clone
+        + Copy
+        + Zero + One + Neg<Output = K> + Sub<Output = K> + Mul<Output = K>
+{
+    fn remove_col(&mut self, index: usize) -> Result<&mut Self, ()>
+    {
+        self.store.iter_mut().for_each(|row| {
+            row.remove(index);
+        });
+
+        Ok(self)
+    }
+
+    fn det_aux(&mut self, size: usize) -> Result<K, ()>
+    {
+        /*
+        when A is 2x2 matrix
+        [a b]
+        [c d]
+        det(A) = ad - cb
+         */
+        if size == 2
+        {
+            return Ok((self.store[0][0] * self.store[1][1])
+                - (self.store[0][1] * self.store[1][0]));
+        }
+
+        /*
+        when A is n by n matrix we perform laplace expansion along the first row
+         */
+
+        // remove first row because we expand along first row
+        let first_row = self.store[0].clone();
+        self.store.remove(0);
+
+        // Laplace expansion w/ recursion
+        let det = (0..size).fold(K::zero(), |acc: K, x|{
+
+            acc + (pow(-K::one(), x + 1) * first_row[x] * self.clone()
+                .remove_col(x).unwrap()
+                .det_aux(size - 1).unwrap())
+        });
+
+        Ok(det)
+    }
+
+    pub fn determinant(&self) -> Result<K, MatrixError>
+    {
+        if !self.is_square()
+        {
+            return Err(MatrixError);
+        }
+
+        Ok(self.clone().det_aux(self.rows).unwrap())
+    }
+}
 
 // --- ex12: Inverse ---
 

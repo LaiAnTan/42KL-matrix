@@ -407,14 +407,13 @@ where
         self.store.remove(0);
 
         // Laplace expansion w/ recursion
-        let det = (0..size).fold(K::zero(), |acc: K, x|{
+        Ok((0..size).fold(K::zero(), |acc: K, x|{
 
             acc + (pow(-K::one(), x + 1) * first_row[x] * self.clone()
                 .remove_col(x).unwrap()
                 .det_aux(size - 1).unwrap())
-        });
+        }))
 
-        Ok(det)
     }
 
     pub fn determinant(&self) -> Result<K, MatrixError>
@@ -439,11 +438,11 @@ where
         + Zero
         + One
 {
-    pub fn rank(&mut self) -> Result<usize, ()>
+    pub fn rank(&self) -> Result<usize, ()>
     where
         K: PartialEq + FromPrimitive + Div<Output = K> + Sub<Output = K>,
     {
-        let rank = self.row_echelon()?.store
+        let rank = self.clone().row_echelon()?.store
             .iter().fold(0, |acc , x| {
                 if (*x).iter().any(|&elem| elem != K::zero()) {
                     return acc + 1;
@@ -709,9 +708,71 @@ mod tests
         Ok(())
     }
 
+    fn test_determinant() -> Result<(), MatrixError>
+    {
+        let u = Matrix::from([
+            [ 1., -1.],
+            [-1., 1.],
+            ]);
+
+        assert_eq!(u.determinant()?, 0.0);
+
+        let u = Matrix::from([
+            [2., 0., 0.],
+            [0., 2., 0.],
+            [0., 0., 2.],
+            ]);
+
+        assert_eq!(u.determinant()?, 8.0);
+
+        let u = Matrix::from([
+            [8., 5., -2.],
+            [4., 7., 20.],
+            [7., 6., 1.],
+            ]);
+
+        assert_eq!(u.determinant()?, -174.0);
+
+        let u = Matrix::from([
+            [ 8., 5., -2., 4.],
+            [ 4., 2.5, 20., 4.],
+            [ 8., 5., 1., 4.],
+            [28., -4., 17., 1.],
+            ]);
+
+        assert_eq!(u.determinant()?, 1032.0);
+        
+        Ok(())
+    }
+
     #[test]
     fn test_rank() -> Result<(), ()>
     {
+        let u = Matrix::from([
+            [1., 0., 0.],
+            [0., 1., 0.],
+            [0., 0., 1.],
+            ]);
+
+        assert_eq!(u.rank()?, 3);
+
+        let u = Matrix::from([
+            [ 1., 2., 0., 0.],
+            [ 2., 4., 0., 0.],
+            [-1., 2., 1., 1.],
+            ]);
+
+        assert_eq!(u.rank()?, 2);
+        
+        let u = Matrix::from([
+            [ 8., 5., -2.],
+            [ 4., 7., 20.],
+            [ 7., 6., 1.],
+            [21., 18., 7.],
+            ]);
+
+        assert_eq!(u.rank()?, 3);
+
         Ok(())
     }
 

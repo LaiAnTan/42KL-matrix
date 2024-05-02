@@ -1,4 +1,4 @@
-use std::{iter::Sum, ops::{Mul, Sub, Neg, Div}};
+use std::{iter::Sum, ops::{Mul, Sub, Neg, Div}, fmt::Display};
 use num::{traits::{float::TotalOrder, Float, MulAdd, Zero, One, pow}, FromPrimitive};
 
 use super::{errors::{self, MatrixError}, Matrix, Vector};
@@ -307,10 +307,10 @@ where
             }
 
             // scale pivot row so that pivot == 1
-            if self.store[pi][ci] != K::zero() {
-                self.store[pi] = self.store[pi].iter()
-                    .map(|&item| item / self.store[pi][ci])
-                    .collect();
+            if self.store[pi][ci] != K::zero()
+            {
+                let sf = self.store[pi][ci];
+                self.store[pi].iter_mut().for_each(|item| *item = *item / sf);
             }
 
             /*
@@ -373,7 +373,11 @@ impl<K> Matrix::<K>
 where
     K: Clone
         + Copy
-        + Zero + One + Neg<Output = K> + Sub<Output = K> + Mul<Output = K>
+        + Zero + One 
+        + Neg<Output = K> 
+        + Sub<Output = K> 
+        + Mul<Output = K> 
+        + From<i32>
 {
     fn remove_col(&mut self, index: usize) -> Result<&mut Self, ()>
     {
@@ -408,8 +412,7 @@ where
 
         // Laplace expansion w/ recursion
         Ok((0..size).fold(K::zero(), |acc: K, x|{
-
-            acc + (pow(-K::one(), x + 1) * first_row[x] * self.clone()
+            acc + (K::from(pow(-1, x + 1)) * first_row[x] * self.clone()
                 .remove_col(x).unwrap()
                 .det_aux(size - 1).unwrap())
         }))
@@ -428,6 +431,143 @@ where
 }
 
 // --- ex12: Inverse ---
+
+impl<K> Matrix::<K>
+where
+    K: Clone
+        + Copy
+        + Zero
+        + One + Display
+{
+    pub fn inverse(&mut self) -> Result<Matrix<K>, MatrixError>
+    where
+        K: PartialEq + FromPrimitive + Div<Output = K> + Sub<Output = K>,
+    {
+        if !self.is_square()
+        {
+            return Err(MatrixError);
+        }
+
+        /* 
+        Inverse matrix function using Gauss-Jordan Elimination.
+        ci => column index
+        pi => pivot index (row)
+         */
+
+        let mut inv = Matrix::new_identity(self.rows);
+
+        // find index of first non zero column
+        let start_ci: usize = match (0..self.columns)
+            .find(|index| self.col(*index).iter().any(|item| *item != K::zero()))
+        {
+            Some(x) => x,
+            None => return Ok(inv),
+        };
+
+        // find index of pivot of first non zero column
+        let mut pi = (0..self.rows)
+            .find(|index| self.col(start_ci)[*index] != K::zero())
+            .unwrap();
+
+        for ci in start_ci..self.columns
+        {
+
+            if pi == self.rows
+            {
+                break
+            }
+            
+            // if pivot is zero we perform a row swap if possible
+            if self.store[pi][ci] == K::zero()
+            {
+                match (pi + 1..self.rows).find(|&i| self.store[i][ci] != K::zero())
+                {
+                    Some(swap_row) => {
+                        self.store.swap(pi, swap_row);
+                        inv.store.swap(pi, swap_row);
+                    },
+                    None => continue,
+                };
+            }
+
+            // scale pivot row so that pivot == 1
+            if self.store[pi][ci] != K::zero()
+            {
+                let sf = self.store[pi][ci];
+                self.store[pi].iter_mut().for_each(|item| *item = *item / sf);
+                inv.store[pi].iter_mut().for_each(|item| *item = *item / sf);
+            }
+
+            /*
+            make every row after pivot 0
+            row[ci] => element for each row below the pivot
+             */
+            let pivot_clone = self.store[pi].clone();
+            let pivot_inv_clone = inv.store[pi].clone();
+
+            self.store.iter_mut()
+                .zip(inv.store.iter_mut())
+                .skip(pi + 1)
+                .filter(|(row, _)| row[ci] != K::zero())
+                .for_each(|(row, inv_row)| {
+                    let sf = row[ci]; // scale factor
+
+                    row.iter_mut().zip(inv_row.iter_mut()).enumerate()
+                    .for_each(|(j, (elem, inv_elem))| {
+                        *elem = *elem - (sf * pivot_clone[j]);
+                        *inv_elem = *inv_elem - (sf * pivot_inv_clone[j]);
+                    });
+
+                });
+
+            pi += 1;
+        }
+
+        // -- reduced row echelon form starts here --
+        for ri in (1..self.rows).rev()
+        {
+
+            let pivot = match (0..self.columns).rev()
+                .find(|&ci| self.store[ri][ci] == K::one())
+                {
+                    Some(pivot) => pivot,
+                    None => continue,
+                };
+
+            if self.col(pivot)[0..ri].iter().all(|&item| item == K::zero())
+            {
+                continue;
+            }
+
+            let curr_row = self.store[ri].clone();
+            let curr_inv_row = inv.store[ri].clone();
+
+            self.store.iter_mut()
+                .zip(inv.store.iter_mut())
+                .rev() // self.rows to 0
+                .skip(self.rows - ri)
+                .filter(|(row, _)| row[pivot] != K::zero())
+                .for_each(|(row, inv_row)| {
+                    let sf = row[pivot];
+                    
+                    row.iter_mut().zip(inv_row.iter_mut()).enumerate()
+                    .for_each(|(ci, (elem, inv_elem))| {
+                        *elem = *elem - (sf * curr_row[ci]);
+                        *inv_elem = *inv_elem - (sf * curr_inv_row[ci]);
+                    });
+
+                });
+        }
+
+        // check if matrix is an identity matrix
+        if self.is_identity()
+        {
+            return Ok(inv);
+        }
+
+        Err(MatrixError)
+    }
+}
 
 // --- ex13: Rank ---
 
@@ -742,6 +882,12 @@ mod tests
 
         assert_eq!(u.determinant()?, 1032.0);
         
+        Ok(())
+    }
+
+    #[test]
+    fn test_inverse() -> Result<(), MatrixError>
+    {
         Ok(())
     }
 

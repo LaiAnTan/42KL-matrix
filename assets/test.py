@@ -94,6 +94,18 @@ def reduced_echelon(mat: List[List[float]]) -> List[List[float]]:
     
     return mat
 
+def is_identity(mat) -> bool:
+    
+    for i, row in enumerate(mat):
+        
+        for j, elem in enumerate(row):
+            
+            if (i == j and elem == 1) or (i != j and elem == 0):
+                continue
+            
+            return False
+
+
 
 if __name__ == "__main__":
     
@@ -125,5 +137,14 @@ if __name__ == "__main__":
     
     print(f"REF: {row_echelon(mat)}")
     print(f"RREF: {reduced_echelon(mat)}")
+    
+    
+    mat = [
+        [1, 0, 0],
+        [0, 1, 1],
+        [0, 0, 1]
+    ]
+    
+    print(is_identity(mat))
 
 

@@ -3,6 +3,7 @@ use std::fmt::Result;
 use core::ops::{Index, IndexMut};
 
 use num::traits::{MulAdd, Float};
+use num::{One, Zero};
 
 
 use crate::linalg::{Matrix, Vector};
@@ -115,6 +116,32 @@ where
     {
         self.store.iter().map(|row| row[index].clone()).collect()
     }
+
+    pub fn is_identity(&self) -> bool
+    where
+        K: One + Zero + PartialEq
+    {
+        self.store.iter().enumerate().all(|(i, row)| {
+            row.iter().enumerate().all(|(j, elem)| {
+                (i == j && *elem == K::one()) || (i != j && *elem == K::zero())
+            })
+        })
+    }
+
+    pub fn new_identity(size: usize) -> Matrix<K>
+    where
+        K: Zero + One
+    {
+        let mut store = Vec::new();
+
+        (0..size).for_each(|index| {
+            store.push(vec![K::zero(); size]);
+            store[index][index] = K::one();
+        });
+
+        Matrix {rows: 4, columns: 4, store}
+    }
+
 
 }
 

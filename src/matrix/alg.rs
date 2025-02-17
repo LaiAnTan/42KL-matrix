@@ -40,7 +40,7 @@ where
 
 // --- ex02: Linear Interpolation ---
 
-pub fn lerp<V, T>(u: V, v: V, t: T) -> Result<V, ()>
+pub fn lerp<V, T>(u: V, v: V, t: T) -> V
 where
     V: Clone
         + Sub<V, Output = V> 
@@ -48,7 +48,7 @@ where
     <V as Sub>::Output: Mul<T, Output = V>,
     T: Float,
 {
-    Ok((v - u.clone()).mul_add(t, u))
+    (v - u.clone()).mul_add(t, u)
 }
 
 /*
@@ -266,7 +266,7 @@ where
         + One
 {
 
-    pub fn row_echelon(&mut self) -> Result<Matrix<K>, ()>
+    pub fn row_echelon(&mut self) -> Matrix<K>
     where
         K: PartialEq + FromPrimitive + Div<Output = K> + Sub<Output = K>,
     {
@@ -281,7 +281,7 @@ where
             .find(|index| self.col(*index).iter().any(|item| *item != K::zero()))
         {
             Some(x) => x,
-            None => return Ok(self.clone()),
+            None => return self.clone(),
         };
 
         // find index of pivot of first non zero column
@@ -362,7 +362,7 @@ where
                 });
         }
 
-        Ok(self.clone())
+        self.clone()
     }
 }
 
@@ -573,11 +573,11 @@ where
         + Zero
         + One
 {
-    pub fn rank(&self) -> Result<usize, ()>
+    pub fn rank(&self) -> usize
     where
         K: PartialEq + FromPrimitive + Div<Output = K> + Sub<Output = K>,
     {
-        let rank = self.clone().row_echelon()?.store
+        let rank = self.clone().row_echelon().store
             .iter().fold(0, |acc , x| {
                 if (*x).iter().any(|&elem| elem != K::zero())
                 {
@@ -585,41 +585,16 @@ where
                 }
                 acc
             });
-
-        Ok(rank)
+        rank
     }
 }
-
-// --- ex14: Projection Matrix ---
-
-pub fn projection(fov: f32, ratio: f32, near: f32, far: f32) -> Result<Matrix::<f32>, ()>
-{
-
-    //https://www.songho.ca/opengl/gl_projectionmatrix.html#fov
-
-    let half_height: f32 = near * fov.tan();
-    let half_width: f32 = half_height * ratio;
-
-    let proj: Matrix<f32> = Matrix::from([
-        [(near / half_width), 0f32, 0f32, 0f32],
-        [0f32, (near / half_height), 0f32, 0f32],
-        [0f32, 0f32, (-(far + near) / (far - near)), (-(2f32 * far * near) / (far - near))],
-        [0f32, 0f32, -1f32, 0f32]
-    ]);
-
-    Ok(proj)
-}
-
-
-
-// --- ex15: Complex Vector Spaces ---
 
 // unit tests
 
 #[cfg(test)]
 mod tests
 {
-    use crate::linalg::errors::{MatrixError, VectorError};
+    use crate::matrix::errors::{MatrixError, VectorError};
 
     use super::{Vector, Matrix, errors};
     extern crate approx; // for floating point relative assertions
@@ -653,12 +628,12 @@ mod tests
         let m1 = Matrix::from([[2., 1.], [3., 4.]]);
         let m2 = Matrix::from([[20.,10.], [30., 40.]]);
 
-        assert_relative_eq!(lerp(0., 1., 0.)?, 0.0, max_relative = 0.00001);
-        assert_relative_eq!(lerp(1., 0., 0.)?, 1.0, max_relative = 0.00001);
-        assert_relative_eq!(lerp(0., 1., 0.5)?, 0.5, max_relative = 0.00001);
-        assert_relative_eq!(lerp(21., 42., 0.3)?, 27.3, max_relative = 0.00001);
-        assert_eq!(lerp(v1, v2, 0.3)?.store, [2.6, 1.3]);
-        assert_eq!(lerp(m1, m2, 0.5)?.store, [[11., 5.5], [16.5, 22.]]);
+        assert_relative_eq!(lerp(0., 1., 0.), 0.0, max_relative = 0.00001);
+        assert_relative_eq!(lerp(1., 0., 0.), 1.0, max_relative = 0.00001);
+        assert_relative_eq!(lerp(0., 1., 0.5), 0.5, max_relative = 0.00001);
+        assert_relative_eq!(lerp(21., 42., 0.3), 27.3, max_relative = 0.00001);
+        assert_eq!(lerp(v1, v2, 0.3).store, [2.6, 1.3]);
+        assert_eq!(lerp(m1, m2, 0.5).store, [[11., 5.5], [16.5, 22.]]);
 
         Ok(())
     }
@@ -808,6 +783,7 @@ mod tests
         assert_eq!(v.transpose()?, v_t);
         assert_eq!(w.transpose()?, w_t);
 
+
         Ok(())
     }
 
@@ -825,7 +801,7 @@ mod tests
             [0.0, 0.0, 0.0, 1.0, 29.5 ],
         ]);
 
-        for (row_u, row_u_ref) in u.row_echelon()?.store.iter().zip(u_ref.store.iter()) {
+        for (row_u, row_u_ref) in u.row_echelon().store.iter().zip(u_ref.store.iter()) {
             for (elem_u, elem_u_ref) in row_u.iter().zip(row_u_ref.iter()) {
                 assert_relative_eq!(elem_u, elem_u_ref, max_relative = 0.00001);
             }
@@ -891,9 +867,9 @@ mod tests
             [21., 18., 7.],
             ]);
 
-        assert_eq!(a.rank()?, 3);
-        assert_eq!(b.rank()?, 2);
-        assert_eq!(c.rank()?, 3);
+        assert_eq!(a.rank(), 3);
+        assert_eq!(b.rank(), 2);
+        assert_eq!(c.rank(), 3);
 
         Ok(())
     }

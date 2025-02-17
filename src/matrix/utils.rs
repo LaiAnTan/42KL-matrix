@@ -5,7 +5,7 @@ use core::ops::{Index, IndexMut};
 use num::traits::{MulAdd, Float};
 use num::{One, Zero};
 
-use crate::linalg::{Matrix, Vector};
+use crate::matrix::{Matrix, Vector};
 
 impl<K> Display for Matrix<K>
 where

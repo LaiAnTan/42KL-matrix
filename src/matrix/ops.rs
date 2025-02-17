@@ -1,8 +1,6 @@
 use std::ops::{Add, Sub, Mul};
-
-use crate::linalg::{Matrix, Vector};
+use crate::matrix::{Matrix, Vector};
 use super::errors::{MatrixError, VectorError};
-
 
 use num::traits::{Zero, MulAdd};
 
@@ -342,7 +340,7 @@ where
 #[cfg(test)]
 mod tests
 {
-    use crate::linalg::errors::{self, MatrixError, VectorError};
+    use crate::matrix::errors::{self, MatrixError, VectorError};
     use super::{Vector, Matrix};
 
     #[test]

@@ -634,12 +634,10 @@ mod tests
         let e1 = Vector::from([1., 0., 0.]);
         let e2 = Vector::from([0., 1., 0.]);
         let e3 = Vector::from([0., 0., 1.]);
-
-        assert_eq!(linear_combination(&[e1, e2, e3], &[10., -2., 0.5])?.store, [10., -2., 0.5]);
-
         let v1 = Vector::from([1., 2., 3.]);
         let v2 = Vector::from([0., 10., -100.]);
 
+        assert_eq!(linear_combination(&[e1, e2, e3], &[10., -2., 0.5])?.store, [10., -2., 0.5]);
         assert_eq!(linear_combination(&[v1, v2], &[10., -2.])?.store, [10., 0., 230.]);
 
         Ok(())
@@ -650,19 +648,16 @@ mod tests
     {
         use super::lerp;
 
+        let v1 = Vector::from([2., 1.]);
+        let v2 = Vector::from([4., 2.]);
+        let m1 = Matrix::from([[2., 1.], [3., 4.]]);
+        let m2 = Matrix::from([[20.,10.], [30., 40.]]);
+
         assert_relative_eq!(lerp(0., 1., 0.)?, 0.0, max_relative = 0.00001);
         assert_relative_eq!(lerp(1., 0., 0.)?, 1.0, max_relative = 0.00001);
         assert_relative_eq!(lerp(0., 1., 0.5)?, 0.5, max_relative = 0.00001);
         assert_relative_eq!(lerp(21., 42., 0.3)?, 27.3, max_relative = 0.00001);
-
-        let v1 = Vector::from([2., 1.]);
-        let v2 = Vector::from([4., 2.]);
-
         assert_eq!(lerp(v1, v2, 0.3)?.store, [2.6, 1.3]);
-
-        let m1 = Matrix::from([[2., 1.], [3., 4.]]);
-        let m2 = Matrix::from([[20.,10.], [30., 40.]]);
-
         assert_eq!(lerp(m1, m2, 0.5)?.store, [[11., 5.5], [16.5, 22.]]);
 
         Ok(())
@@ -671,20 +666,16 @@ mod tests
     #[test]
     fn test_dot_product() -> Result<(), errors::VectorError>
     {
-        let u = Vector::from([0., 0.,]);
-        let v = Vector::from([1., 1.]);
+        let a = Vector::from([0., 0.,]);
+        let b = Vector::from([1., 1.]);
+        let c = Vector::from([1., 1.]);
+        let d = Vector::from([1., 1.]);
+        let e = Vector::from([-1., 6.]);
+        let f = Vector::from([3., 2.]);
 
-        assert_eq!(u.dot(&v)?, 0.0);
-
-        let u = Vector::from([1., 1.]);
-        let v = Vector::from([1., 1.]);
-
-        assert_eq!(u.dot(&v)?, 2.0);
-
-        let u = Vector::from([-1., 6.]);
-        let v = Vector::from([3., 2.]);
-
-        assert_eq!(u.dot(&v)?, 9.0);
+        assert_eq!(a.dot(&b)?, 0.0);
+        assert_eq!(c.dot(&d)?, 2.0);
+        assert_eq!(e.dot(&f)?, 9.0);
 
         Ok(())
     }
@@ -699,17 +690,13 @@ mod tests
     #[test]
     fn test_norms() -> Result<(), VectorError>
     {
-        let u = Vector::from([0., 0., 0.]);
+        let a = Vector::from([0., 0., 0.]);
+        let b = Vector::from([1., 2., 3.]);
+        let c = Vector::from([-1., -2.]);
 
-        assert_eq!([u.norm_1()?, u.norm()?, u.norm_inf()?], [0., 0., 0.]);
-
-        let u = Vector::from([1., 2., 3.]);
-
-        assert_eq!([u.norm_1()?, round_to(u.norm()?, 6.), u.norm_inf()?], [6., 3.741_657, 3.]);
-
-        let u = Vector::from([-1., -2.]);
-
-        assert_eq!([u.norm_1()?, round_to(u.norm()?, 6.), u.norm_inf()?], [3., 2.236_068, 2.]);
+        assert_eq!([a.norm_1()?, a.norm()?, a.norm_inf()?], [0., 0., 0.]);
+        assert_eq!([b.norm_1()?, round_to(b.norm()?, 6.), b.norm_inf()?], [6., 3.741_657, 3.]);
+        assert_eq!([c.norm_1()?, round_to(c.norm()?, 6.), c.norm_inf()?], [3., 2.236_068, 2.]);
 
         Ok(())
     }
@@ -718,30 +705,22 @@ mod tests
     fn test_cos_angle() -> Result<(), VectorError>
     {
 
-        let u = Vector::from([1., 0.]);
-        let v = Vector::from([1., 0.]);
+        let a1 = Vector::from([1., 0.]);
+        let a2 = Vector::from([1., 0.]);
+        let b1 = Vector::from([1., 0.]);
+        let b2 = Vector::from([0., 1.]);
+        let c1 = Vector::from([-1., 1.]);
+        let c2 = Vector::from([ 1., -1.]);
+        let d1 = Vector::from([2., 1.]);
+        let d2 = Vector::from([4., 2.]);
+        let e1 = Vector::from([1., 2., 3.]);
+        let e2 = Vector::from([4., 5., 6.]);
 
-        assert_eq!(round_to(u.angle_cos(&v)?, 1.), 1.);
-
-        let u = Vector::from([1., 0.]);
-        let v = Vector::from([0., 1.]);
-
-        assert_eq!(round_to(u.angle_cos(&v)?, 1.), 0.);
-
-        let u = Vector::from([-1., 1.]);
-        let v = Vector::from([ 1., -1.]);
-
-        assert_eq!(round_to(u.angle_cos(&v)?, 1.), -1.);
-
-        let u = Vector::from([2., 1.]);
-        let v = Vector::from([4., 2.]);
-
-        assert_eq!(round_to(u.angle_cos(&v)?, 1.), 1.);
-
-        let u = Vector::from([1., 2., 3.]);
-        let v = Vector::from([4., 5., 6.]);
-
-        assert_eq!(u.angle_cos(&v)?, 0.974_631_9);
+        assert_eq!(round_to(a1.angle_cos(&a2)?, 1.), 1.);
+        assert_eq!(round_to(b1.angle_cos(&b2)?, 1.), 0.);
+        assert_eq!(round_to(c1.angle_cos(&c2)?, 1.), -1.);
+        assert_eq!(round_to(d1.angle_cos(&d2)?, 1.), 1.);
+        assert_eq!(e1.angle_cos(&e2)?, 0.974_631_9);
 
         Ok(())
     }
@@ -749,20 +728,16 @@ mod tests
     #[test]
     fn test_cross_product() -> Result<(), VectorError>
     {
-        let u = Vector::from([0., 0., 1.]);
-        let v = Vector::from([1., 0., 0.]);
+        let a1 = Vector::from([0., 0., 1.]);
+        let a2 = Vector::from([1., 0., 0.]);
+        let b1 = Vector::from([1., 2., 3.]);
+        let b2 = Vector::from([4., 5., 6.]);
+        let c1 = Vector::from([4., 2., -3.]);
+        let c2 = Vector::from([-2., -5., 16.]);
 
-        assert_eq!(u.cross_product(&v)?.store, [0., 1., 0.]);
-
-        let u = Vector::from([1., 2., 3.]);
-        let v = Vector::from([4., 5., 6.]);
-        
-        assert_eq!(u.cross_product(&v)?.store, [-3., 6., -3.]);
-
-        let u = Vector::from([4., 2., -3.]);
-        let v = Vector::from([-2., -5., 16.]);
-
-        assert_eq!(u.cross_product(&v)?.store, [17., -58., -16.]);
+        assert_eq!(a1.cross_product(&a2)?.store, [0., 1., 0.]);
+        assert_eq!(b1.cross_product(&b2)?.store, [-3., 6., -3.]);
+        assert_eq!(c1.cross_product(&c2)?.store, [17., -58., -16.]);
 
         Ok(())
     }
@@ -804,42 +779,34 @@ mod tests
             [1., 0.],
             [0., 1.],
             ]);
-
         let u_t = Matrix::from([
             [1., 0.],
             [0., 1.],
             ]);
-        
-        assert_eq!(u.transpose()?, u_t);
-
         let mut v: Matrix<f64> = Matrix::from([
             [2., -5., 0.],
             [4., 3., 7.],
             [-2., 3., 4.],
             ]);
-
         let v_t: Matrix<f64> = Matrix::from([
             [2., 4., -2.],
             [-5., 3., 3.],
             [0., 7., 4.],
             ]);
-        
-        assert_eq!(v.transpose()?, v_t);
-
         let mut w = Matrix::from([
             [-2., -8., 4.],
             [1., -23., 4.],
             [0., 6., 4.],
             ]);
-
         let w_t = Matrix::from([
             [-2., 1., 0.],
             [-8., -23., 6.],
             [4., 4., 4.],
             ]);
-
+        
+        assert_eq!(u.transpose()?, u_t);
+        assert_eq!(v.transpose()?, v_t);
         assert_eq!(w.transpose()?, w_t);
-
 
         Ok(())
     }
@@ -852,51 +819,48 @@ mod tests
             [4., 2.5, 20., 4., -4.],
             [8., 5., 1., 4., 17.],
         ]);
-
-        let mut u_ref = Matrix::from([
+        let u_ref = Matrix::from([
             [1.0, 0.625, 0.0, 0.0, -12.1666667],
             [0.0, 0.0, 1.0, 0.0, -3.6666667],
             [0.0, 0.0, 0.0, 1.0, 29.5 ],
         ]);
 
-        //assert_relative_eq!(u.row_echelon()?, u_ref);
+        for (row_u, row_u_ref) in u.row_echelon()?.store.iter().zip(u_ref.store.iter()) {
+            for (elem_u, elem_u_ref) in row_u.iter().zip(row_u_ref.iter()) {
+                assert_relative_eq!(elem_u, elem_u_ref, max_relative = 0.00001);
+            }
+        }
         
         Ok(())
     }
 
     fn test_determinant() -> Result<(), MatrixError>
     {
-        let u = Matrix::from([
+        let a = Matrix::from([
             [ 1., -1.],
             [-1., 1.],
             ]);
-
-        assert_eq!(u.determinant()?, 0.0);
-
-        let u = Matrix::from([
+        let b = Matrix::from([
             [2., 0., 0.],
             [0., 2., 0.],
             [0., 0., 2.],
             ]);
-
-        assert_eq!(u.determinant()?, 8.0);
-
-        let u = Matrix::from([
+        let c = Matrix::from([
             [8., 5., -2.],
             [4., 7., 20.],
             [7., 6., 1.],
             ]);
-
-        assert_eq!(u.determinant()?, -174.0);
-
-        let u = Matrix::from([
+        let d = Matrix::from([
             [ 8., 5., -2., 4.],
             [ 4., 2.5, 20., 4.],
             [ 8., 5., 1., 4.],
             [28., -4., 17., 1.],
             ]);
 
-        assert_eq!(u.determinant()?, 1032.0);
+        assert_eq!(a.determinant()?, 0.0);
+        assert_eq!(b.determinant()?, 8.0);
+        assert_eq!(c.determinant()?, -174.0);
+        assert_eq!(d.determinant()?, 1032.0);
         
         Ok(())
     }
@@ -910,30 +874,26 @@ mod tests
     #[test]
     fn test_rank() -> Result<(), ()>
     {
-        let u = Matrix::from([
+        let a = Matrix::from([
             [1., 0., 0.],
             [0., 1., 0.],
             [0., 0., 1.],
             ]);
-
-        assert_eq!(u.rank()?, 3);
-
-        let u = Matrix::from([
+        let b = Matrix::from([
             [ 1., 2., 0., 0.],
             [ 2., 4., 0., 0.],
             [-1., 2., 1., 1.],
             ]);
-
-        assert_eq!(u.rank()?, 2);
-        
-        let u = Matrix::from([
+        let c = Matrix::from([
             [ 8., 5., -2.],
             [ 4., 7., 20.],
             [ 7., 6., 1.],
             [21., 18., 7.],
             ]);
 
-        assert_eq!(u.rank()?, 3);
+        assert_eq!(a.rank()?, 3);
+        assert_eq!(b.rank()?, 2);
+        assert_eq!(c.rank()?, 3);
 
         Ok(())
     }

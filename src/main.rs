@@ -7,24 +7,6 @@ use crate::matrix::{Matrix, errors};
 fn main() -> Result<(), errors::MatrixError> // main must return result for error propogation to be legal
 {
     let mut u = Matrix::from([
-        [1., 0., 0.],
-        [0., 1., 0.],
-        [0., 0., 1.],
-        ]);
-    println!("{}", u.inverse()?);
-    // [1.0, 0.0, 0.0]
-    // [0.0, 1.0, 0.0]
-    // [0.0, 0.0, 1.0]
-    let mut u = Matrix::from([
-        [2., 0., 0.],
-        [0., 2., 0.],
-        [0., 0., 2.],
-        ]);
-    println!("{}", u.inverse()?);
-    // [0.5, 0.0, 0.0]
-    // [0.0, 0.5, 0.0]
-    // [0.0, 0.0, 0.5]
-    let mut u = Matrix::from([
         [8., 5., -2.],
         [4., 7., 20.],
         [7., 6., 1.],

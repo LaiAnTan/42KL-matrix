@@ -115,17 +115,15 @@ where
         + Mul<V, Output = V>
         + Neg<Output = V>
 {
-    pub fn norm_1(&self) -> Result<V, VectorError>
+    pub fn norm_1(&self) -> V
     where
         V: PartialOrd
             + Sum<V>
     {
-        Ok(self.store.iter()
-            .filter_map(|&x| abs(x).ok())
-            .sum())
+        self.store.iter().filter_map(|&x| abs(x).ok()).sum()
     }
 
-    pub fn norm(&self) -> Result<V, VectorError>
+    pub fn norm(&self) -> V
     where
         V: Sum<V>,
         f32: Into<V>
@@ -133,10 +131,9 @@ where
     {
         let magnitude_squared_sum = self.store.iter().map(|&x| x * x)
                                             .sum();
-
         let inv_sqrt = fi_sqrt(&magnitude_squared_sum);
 
-        Ok((inv_sqrt * magnitude_squared_sum).into())
+        (inv_sqrt * magnitude_squared_sum).into()
     }
 
     pub fn norm_inf(&self) -> Result<V, VectorError>
@@ -152,7 +149,7 @@ where
         match result
         {
             Some(x) => Ok(x),
-            None => Err(VectorError), // this should never happen but just in case
+            None => Err(VectorError)
         }
     }
 }
@@ -174,7 +171,7 @@ where
             + Sum<K>,
         f32: Into<K> + Sum<K>,
     {
-        Ok(self.dot(v)? / (self.norm()? * v.norm()?))
+        Ok(self.dot(v)? / (self.norm() * v.norm()))
     }
 }
 
@@ -669,9 +666,9 @@ mod tests
         let b = Vector::from([1., 2., 3.]);
         let c = Vector::from([-1., -2.]);
 
-        assert_eq!([a.norm_1()?, a.norm()?, a.norm_inf()?], [0., 0., 0.]);
-        assert_eq!([b.norm_1()?, round_to(b.norm()?, 6.), b.norm_inf()?], [6., 3.741_657, 3.]);
-        assert_eq!([c.norm_1()?, round_to(c.norm()?, 6.), c.norm_inf()?], [3., 2.236_068, 2.]);
+        assert_eq!([a.norm_1(), a.norm(), a.norm_inf()?], [0., 0., 0.]);
+        assert_eq!([b.norm_1(), round_to(b.norm(), 6.), b.norm_inf()?], [6., 3.741_657, 3.]);
+        assert_eq!([c.norm_1(), round_to(c.norm(), 6.), c.norm_inf()?], [3., 2.236_068, 2.]);
 
         Ok(())
     }
@@ -844,6 +841,55 @@ mod tests
     #[test]
     fn test_inverse() -> Result<(), MatrixError>
     {
+        let mut a = Matrix::from([
+            [1., 0., 0.],
+            [0., 1., 0.],
+            [0., 0., 1.],
+            ]);
+        let a_inv = Matrix::from([
+            [1., 0., 0.],
+            [0., 1., 0.],
+            [0., 0., 1.],
+            ]);
+        let mut b = Matrix::from([
+            [2., 0., 0.],
+            [0., 2., 0.],
+            [0., 0., 2.],
+            ]);
+        let b_inv = Matrix::from([
+            [0.5, 0.0, 0.0],
+            [0.0, 0.5, 0.0],
+            [0.0, 0.0, 0.5],
+            ]);
+        let mut c = Matrix::from([
+            [8., 5., -2.],
+            [4., 7., 20.],
+            [7., 6., 1.],
+            ]);
+        let c_inv = Matrix::from([
+            [0.649425287, 0.097701149, -0.655172414],
+            [-0.781609195, -0.126436782, 0.965517241],
+            [0.143678161, 0.074712644, -0.206896552],
+        ]);
+
+        for (a_row, a_inv_row) in a.inverse()?.store.iter().zip(a_inv.store.iter()) {
+            for (e, ei) in a_row.iter().zip(a_inv_row.iter()) {
+                assert_relative_eq!(e, ei, max_relative = 0.00001);
+            }
+        }
+
+        for (b_row, b_inv_row) in b.inverse()?.store.iter().zip(b_inv.store.iter()) {
+            for (e, ei) in b_row.iter().zip(b_inv_row.iter()) {
+                assert_relative_eq!(e, ei, max_relative = 0.00001);
+            }
+        }
+
+        for (c_row, c_inv_row) in c.inverse()?.store.iter().zip(c_inv.store.iter()) {
+            for (e, ei) in c_row.iter().zip(c_inv_row.iter()) {
+                assert_relative_eq!(e, ei, max_relative = 0.00001);
+            }
+        }
+
         Ok(())
     }
 

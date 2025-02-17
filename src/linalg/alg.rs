@@ -7,6 +7,12 @@ use super::errors::VectorError;
 
 // --- ex01: Linear Combination ---
 
+/*
+Time complexity: O(n)
+Space Complexity: O(n)
+where n is the total number of coordinates in all vectors.
+*/
+
 pub fn linear_combination<K>(u: &[Vector<K>], coefs: &[K]) -> Result<Vector<K>, errors::VectorError>
 where
     K: Clone 
@@ -23,7 +29,6 @@ where
 
     for (i, vec) in u.iter().enumerate()
     {
-
         for (j, &val) in vec.store.iter().enumerate()
         {
             result[j] = val.mul_add(coefs[i], result[j]);
@@ -68,14 +73,10 @@ where
             return Err(errors::VectorError)
         }
 
-        let mut result = K::zero();
+        let res = self.store.iter().zip(v.store.iter())
+            .fold(K::zero(), |acc, (&i, &j)| i.mul_add(j, acc));
 
-        for (&i, &j) in self.store.iter().zip(v.store.iter())
-        {
-            result = i.mul_add(j, result);
-        }
-
-        Ok(result)
+        Ok(res)
     }
 }
 
@@ -307,11 +308,8 @@ where
             }
 
             // scale pivot row so that pivot == 1
-            if self.store[pi][ci] != K::zero()
-            {
-                let sf = self.store[pi][ci];
-                self.store[pi].iter_mut().for_each(|item| *item = *item / sf);
-            }
+            let sf = self.store[pi][ci];
+            self.store[pi].iter_mut().for_each(|item| *item = *item / sf);
 
             /*
             make every row after pivot 0
@@ -323,10 +321,11 @@ where
                 .skip(pi + 1)
                 .filter(|row| row[ci] != K::zero())
                 .for_each(|row| {
+                    // scale below pivot == 0
+                    // new row = row - (scalar * pivot row)
+                    // eg: 5 - (5 * 1) = 0
                     *row = row.iter().enumerate()
-                        // scale below pivot == 0
-                        // new row = row - (scalar * pivot row)
-                        // eg: 5 - (5 * 1) = 0
+                        
                         .map(|(j, &ej)| ej - (row[ci] * pivot_clone[j]))
                         .collect::<Vec<K>>();
                 });
@@ -471,7 +470,6 @@ where
 
         for ci in start_ci..self.columns
         {
-
             if pi == self.rows
             {
                 break
@@ -491,12 +489,9 @@ where
             }
 
             // scale pivot row so that pivot == 1
-            if self.store[pi][ci] != K::zero()
-            {
-                let sf = self.store[pi][ci];
-                self.store[pi].iter_mut().for_each(|item| *item = *item / sf);
-                inv.store[pi].iter_mut().for_each(|item| *item = *item / sf);
-            }
+            let sf = self.store[pi][ci];
+            self.store[pi].iter_mut().for_each(|item| *item = *item / sf);
+            inv.store[pi].iter_mut().for_each(|item| *item = *item / sf);
 
             /*
             make every row after pivot 0
@@ -584,17 +579,38 @@ where
     {
         let rank = self.clone().row_echelon()?.store
             .iter().fold(0, |acc , x| {
-                if (*x).iter().any(|&elem| elem != K::zero()) {
+                if (*x).iter().any(|&elem| elem != K::zero())
+                {
                     return acc + 1;
                 }
                 acc
-        });
+            });
 
         Ok(rank)
     }
 }
 
 // --- ex14: Projection Matrix ---
+
+pub fn projection(fov: f32, ratio: f32, near: f32, far: f32) -> Result<Matrix::<f32>, ()>
+{
+
+    //https://www.songho.ca/opengl/gl_projectionmatrix.html#fov
+
+    let half_height: f32 = near * fov.tan();
+    let half_width: f32 = half_height * ratio;
+
+    let proj: Matrix<f32> = Matrix::from([
+        [(near / half_width), 0f32, 0f32, 0f32],
+        [0f32, (near / half_height), 0f32, 0f32],
+        [0f32, 0f32, (-(far + near) / (far - near)), (-(2f32 * far * near) / (far - near))],
+        [0f32, 0f32, -1f32, 0f32]
+    ]);
+
+    Ok(proj)
+}
+
+
 
 // --- ex15: Complex Vector Spaces ---
 
@@ -831,19 +847,19 @@ mod tests
     #[test]
     fn test_row_echelon() -> Result<(), ()>
     {
-        // let mut u = Matrix::from([
-        //     [8., 5., -2., 4., 28.],
-        //     [4., 2.5, 20., 4., -4.],
-        //     [8., 5., 1., 4., 17.],
-        //     ]);
+        let mut u = Matrix::from([
+            [8., 5., -2., 4., 28.],
+            [4., 2.5, 20., 4., -4.],
+            [8., 5., 1., 4., 17.],
+        ]);
 
-        // let u_ref = Matrix::from([
-        //     [1.0, 0.625, 0.0, 0.0, -12.1666667],
-        //     [0.0, 0.0, 1.0, 0.0, -3.6666667],
-        //     [0.0, 0.0, 0.0, 1.0, 29.5],
-        //     ]);
+        let mut u_ref = Matrix::from([
+            [1.0, 0.625, 0.0, 0.0, -12.1666667],
+            [0.0, 0.0, 1.0, 0.0, -3.6666667],
+            [0.0, 0.0, 0.0, 1.0, 29.5 ],
+        ]);
 
-        // assert_relative_eq!(u.row_echelon()?, u_ref);
+        //assert_relative_eq!(u.row_echelon()?, u_ref);
         
         Ok(())
     }

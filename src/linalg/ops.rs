@@ -113,7 +113,7 @@ where
         Ok(self.clone())
     }
 
-    pub fn scl(&mut self, a: K) -> Result<Self, ()>
+    pub fn scl(&mut self, a: K) -> Result<Self, MatrixError>
     where
         K: Mul<Output = K> + Clone + Copy,
     {
@@ -228,42 +228,63 @@ where
     }
 
     // scale
-    pub fn scl(&mut self, a: K)
+    pub fn scl(&mut self, a: K) -> Result<Self, VectorError>
     where
         K: Mul<Output = K> + Clone + Copy,
     {
         self.store = self.store.iter().map(|&x| x * a)
-                .collect()
+                .collect();
+
+        Ok(self.clone())
     }
 }
 
 // --- ex07: Linear Map, Matrix Multiplication ---
 
-// impl<K> Mul<Vector<K>> for Matrix<K>
-// where
-//     K: Clone
-// {
-//     type Output = Vector<K>;
+// overload: mat * vec
+impl<K> Mul<Vector<K>> for Matrix<K>
+where
+    K: Clone + MulAdd<Output = K> + Zero + Copy
+{
+    type Output = Vector<K>;
 
-//     fn mul(self, rhs: Vector<K>) -> Self::Output
-//     {
+    fn mul(self, rhs: Vector<K>) -> Self::Output
+    {
+        assert_eq!(self.columns, rhs.size, "Number of columns of matrix must be equal to vector size to multiply");
+        
+        Vector::from(self.store.iter()
+        .map(|row| {
+            let row_vec: Vector<K> = Vector::from(row.clone());
+            rhs.dot(&row_vec).unwrap() // this wont panic, the error is already handled above
+        })
+        .collect::<Vec<K>>())
+    }
+}
 
-//     }
-// }
+// overload: mat * mat
+impl<K> Mul<Matrix<K>> for Matrix<K>
+where
+    K: Clone + MulAdd<Output = K> + Zero + Copy
+{
+    type Output = Matrix<K>;
 
-// impl<K> Mul<Matrix<K>> for Matrix<K>
-// where
-//     K: Clone
-// {
-//     type Output = Self;
+    fn mul(self, rhs: Matrix<K>) -> Self::Output
+    {
+        assert_eq!(self.columns, rhs.rows, "Number of columns of lhs must be equal to number of rows of rhs to multiply");
 
-//     fn mul(self, rhs: Matrix<K>) -> Self::Output
-//     {
-
-//     }
-// } 
-
-
+        Self
+        {
+            columns: self.columns,
+            rows: self.rows,
+            store: self.store.iter()
+                .map(|row| {
+                    (0..rhs.columns).map(|index| {
+                        Vector::from(row.clone()).dot(&Vector::from(rhs.col(index).clone())).unwrap() // safe unwrap, error already handled above
+                    }).collect()
+                }).collect()
+        }
+    }
+} 
 
 // function form
 impl<K> Matrix<K>
@@ -322,45 +343,140 @@ where
 mod tests
 {
     use crate::linalg::errors::{self, MatrixError, VectorError};
-
     use super::{Vector, Matrix};
-    extern crate approx; // for floating point relative assertions
-
-    //use approx::assert_relative_eq;
 
     #[test]
-    fn test_ops() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
+    fn test_vec_add() -> Result<(), VectorError>
+    {
+        let a= Vector::from([1., 2., 3.]);
+        let b = Vector::from([-1., 40., 3.]);
+        let mut c = a.clone();
+        let d = b.clone();
+
+        assert_eq!((a + b).store, [0., 42., 6.]);
+        assert_eq!(c.add(&d)?.store, [0., 42., 6.]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_vec_sub() -> Result<(), VectorError>
+    {
+        let a= Vector::from([1., 2., 3.]);
+        let b = Vector::from([-1., 40., 3.]);
+        let mut c = a.clone();
+        let d = b.clone();
+
+        assert_eq!((a - b).store, [2.0, -38.0, 0.0]);
+        assert_eq!(c.sub(&d)?.store, [2.0, -38.0, 0.0]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_vec_scl() -> Result<(), VectorError>
+    {
+        let a= Vector::from([0., 2., 3.]);
+        let mut b = Vector::from([0., 2., 3.]);
+
+        assert_eq!((a * 3.).store, [0., 6.0, 9.0]);
+        assert_eq!(b.scl(3.)?.store, [0., 6.0, 9.0]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_mat_add() -> Result<(), MatrixError>
+    {
+        let a = Matrix::from([
+            [1., 2.],
+            [0., -3.],
+            ]);
+        let b = Matrix::from([
+            [1., 40.],
+            [-2., 3.],
+            ]);
+            
+        assert_eq!(a.clone().add(&b.clone())?.store, [
+            [2., 42.],
+            [-2., 0.],
+        ]);
+        assert_eq!((a + b).store, [
+            [2., 42.],
+            [-2., 0.],
+        ]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_mat_sub() -> Result<(), MatrixError>
+    {
+        let a = Matrix::from([
+            [1., 2.],
+            [0., -3.],
+            ]);
+        let b = Matrix::from([
+            [1., 40.],
+            [-2., 3.],
+            ]);
+            
+        assert_eq!(a.clone().sub(&b.clone())?.store, [
+            [0., -38.],
+            [2., -6.],
+        ]);
+        assert_eq!((a - b).store, [
+            [0., -38.],
+            [2., -6.],
+        ]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_mat_scl() -> Result<(), MatrixError>
+    {
+        let mut a = Matrix::from([
+            [1., 2.],
+            [0., -3.],
+            ]);
+
+        assert_eq!((a.clone() * 3.).store, [
+            [3., 6.],
+            [0., -9.],
+        ]);
+        assert_eq!(a.scl(3.)?.store, [
+            [3., 6.],
+            [0., -9.],
+        ]);
+
+        Ok(())
     }
 
     #[test]
     fn test_vec_mul() -> Result<(), errors::MatrixError>
     {
-        let mut u = Matrix::from([
+        let mut a = Matrix::from([
             [1., 0.],
             [0., 1.],
             ]);
-        let v = Vector::from([4., 2.]);
-
-        assert_eq!(u.mul_vec(&v)?.store, [4., 2.]);
-
-        let mut u = Matrix::from([
+        let b = Vector::from([4., 2.]);
+        let mut c = Matrix::from([
             [2., 0.],
             [0., 2.],
             ]);
-        let v = Vector::from([4., 2.]);
-        
-        assert_eq!(u.mul_vec(&v)?.store, [8., 4.]);
-
-        let mut u = Matrix::from([
+        let d = Vector::from([4., 2.]);
+        let mut e = Matrix::from([
         [2., -2.],
         [-2., 2.],
         ]);
-        let v = Vector::from([4., 2.]);
-        
-        assert_eq!(u.mul_vec(&v)?.store, [4., -4.]);
-        
+        let f = Vector::from([4., 2.]);
+
+        assert_eq!(a.mul_vec(&b)?.store, [4., 2.]);
+        assert_eq!(c.mul_vec(&d)?.store, [8., 4.]);
+        assert_eq!((e.clone() * f.clone()).store, [4., -4.]);
+        assert_eq!(e.mul_vec(&f)?.store, [4., -4.]);
+
         Ok(())
     }
 
@@ -375,16 +491,10 @@ mod tests
             [1., 0.],
             [0., 1.],
             ]);
-
-        assert_eq!(a.mul_mat(&b)?.store, [[1., 0.], [0., 1.]]);
-
         let c = Matrix::from([
             [2., 1.],
             [4., 2.],
             ]);
-
-        assert_eq!(a.mul_mat(&c)?.store, [[2., 1.], [4., 2.]]);
-
         let mut d = Matrix::from([
             [3., -5.],
             [6., 8.],
@@ -393,8 +503,21 @@ mod tests
             [2., 1.],
             [4., 2.],
             ]);
-        
+        let mut f = Matrix::from([
+            [1., 2., 3.],
+            [4., 5., 6.],
+        ]);
+        let g = Matrix::from([
+            [10., 11.],
+            [20., 21.],
+            [30., 31.],
+        ]);
+
+        assert_eq!(a.mul_mat(&b)?.store, [[1., 0.], [0., 1.]]);
+        assert_eq!(a.mul_mat(&c)?.store, [[2., 1.], [4., 2.]]);
         assert_eq!(d.mul_mat(&e)?.store, [[-14., -7.], [44., 22.]]);
+        assert_eq!((f.clone() * g.clone()).store, [[140., 146.], [320., 335.]]);
+        assert_eq!(f.mul_mat(&g)?.store, [[140., 146.], [320., 335.]]);
         
         Ok(())
     }

@@ -236,20 +236,15 @@ where
         + Copy
         + Zero
 {
-    pub fn transpose(&mut self) -> Result<Matrix<K>, MatrixError>
+    pub fn transpose(&mut self) -> Matrix<K>
     where
         K: std::iter::Sum
     {
-        if !self.is_square()
-        {
-            return Err(MatrixError)
-        }
-
         self.store = (0..self.columns)
             .map(|index| self.col(index))
             .collect();
 
-        Ok(Matrix {rows: self.rows, columns: self.columns, store: self.store.clone()})
+        Matrix {rows: self.rows, columns: self.columns, store: self.store.clone()}
     }
 }
 
@@ -282,13 +277,10 @@ where
         };
 
         // find index of pivot of first non zero column
-        let mut pi = (0..self.rows)
-            .find(|index| self.col(start_ci)[*index] != K::zero())
-            .unwrap();
+        let mut pi = 0;
 
         for ci in start_ci..self.columns
         {
-
             if pi == self.rows
             {
                 break
@@ -433,7 +425,7 @@ where
     K: Clone
         + Copy
         + Zero
-        + One + Display
+        + One + Display + std::fmt::Debug
 {
     pub fn inverse(&mut self) -> Result<Matrix<K>, MatrixError>
     where
@@ -448,7 +440,7 @@ where
         Inverse matrix function using Gauss-Jordan Elimination.
         ci => column index
         pi => pivot index (row)
-         */
+        */
 
         let mut inv = Matrix::new_identity(self.rows);
 
@@ -460,10 +452,7 @@ where
             None => return Ok(inv),
         };
 
-        // find index of pivot of first non zero column
-        let mut pi = (0..self.rows)
-            .find(|index| self.col(start_ci)[*index] != K::zero())
-            .unwrap();
+        let mut pi = 0;
 
         for ci in start_ci..self.columns
         {
@@ -480,6 +469,7 @@ where
                     Some(swap_row) => {
                         self.store.swap(pi, swap_row);
                         inv.store.swap(pi, swap_row);
+
                     },
                     None => continue,
                 };
@@ -514,6 +504,9 @@ where
 
             pi += 1;
         }
+
+        println!("A: {:?}", self.store);
+        println!("I: {:?}", inv.store);
 
         // -- reduced row echelon form starts here --
         for ri in (1..self.rows).rev()
@@ -612,6 +605,12 @@ mod tests
         assert_eq!(linear_combination(&[e1, e2, e3], &[10., -2., 0.5])?.store, [10., -2., 0.5]);
         assert_eq!(linear_combination(&[v1, v2], &[10., -2.])?.store, [10., 0., 230.]);
 
+        // eval sheet tests
+        assert_eq!(linear_combination(&[Vector::from([-42., 42.])], &[-1.])?.store, [42., -42.]);
+        assert_eq!(linear_combination(&[Vector::from([-42.]), Vector::from([-42.]), Vector::from([-42.])], &[-1., 1., 0.])?.store, [0.]);
+        assert_eq!(linear_combination(&[Vector::from([-42., 42.]), Vector::from([1., 3.]), Vector::from([10., 20.])], &[1., -10., -1.])?.store, [-62., -8.]);
+        assert_eq!(linear_combination(&[Vector::from([-42., 100., -69.5]), Vector::from([1., 3., 5.])], &[1., -10.])?.store, [-52., 70., -119.5]);
+        
         Ok(())
     }
 
@@ -632,6 +631,13 @@ mod tests
         assert_eq!(lerp(v1, v2, 0.3).store, [2.6, 1.3]);
         assert_eq!(lerp(m1, m2, 0.5).store, [[11., 5.5], [16.5, 22.]]);
 
+        // eval sheet tests
+        assert_relative_eq!(lerp(0., 1., 0.), 0.0, max_relative = 0.00001);
+        assert_relative_eq!(lerp(0., 1., 1.), 1.0, max_relative = 0.00001);
+        assert_relative_eq!(lerp(0., 42., 0.5), 21.0, max_relative = 0.00001);
+        assert_relative_eq!(lerp(-42., 42., 0.5), 0.0, max_relative = 0.00001);
+        assert_eq!(lerp(Vector::from([-42., 42.]), Vector::from([42., -42.]), 0.5).store, [0.0, 0.0]);
+
         Ok(())
     }
 
@@ -648,6 +654,14 @@ mod tests
         assert_eq!(a.dot(&b)?, 0.0);
         assert_eq!(c.dot(&d)?, 2.0);
         assert_eq!(e.dot(&f)?, 9.0);
+
+        // eval sheet tests
+        assert_eq!(Vector::from([0, 0]).dot(&Vector::from([0, 0]))?, 0);
+        assert_eq!(Vector::from([1, 0]).dot(&Vector::from([0, 0]))?, 0);
+        assert_eq!(Vector::from([1, 0]).dot(&Vector::from([1, 0]))?, 1);
+        assert_eq!(Vector::from([1, 0]).dot(&Vector::from([0, 1]))?, 0);
+        assert_eq!(Vector::from([1, 1]).dot(&Vector::from([1, 1]))?, 2);
+        assert_eq!(Vector::from([4, 2]).dot(&Vector::from([2, 1]))?, 10);
 
         Ok(())
     }
@@ -669,6 +683,28 @@ mod tests
         assert_eq!([a.norm_1(), a.norm(), a.norm_inf()?], [0., 0., 0.]);
         assert_eq!([b.norm_1(), round_to(b.norm(), 6.), b.norm_inf()?], [6., 3.741_657, 3.]);
         assert_eq!([c.norm_1(), round_to(c.norm(), 6.), c.norm_inf()?], [3., 2.236_068, 2.]);
+
+        // eval sheet tests
+        assert_eq!(Vector::from([0]).norm_1(), 0);
+        assert_eq!(Vector::from([1]).norm_1(), 1);
+        assert_eq!(Vector::from([0, 0]).norm_1(), 0);
+        assert_eq!(Vector::from([1, 0]).norm_1(), 1);
+        assert_eq!(Vector::from([2, 1]).norm_1(), 3);
+        assert_eq!(Vector::from([4, 2]).norm_1(), 6);
+        assert_eq!(Vector::from([-4, -2]).norm_1(), 6);
+        assert_relative_eq!(Vector::from([0.]).norm(), 0., max_relative = 0.00001);
+        assert_relative_eq!(Vector::from([1.]).norm(), 1., max_relative = 0.00001);
+        assert_relative_eq!(Vector::from([0., 0.]).norm(), 0., max_relative = 0.00001);
+        assert_relative_eq!(Vector::from([1., 0.]).norm(), 1., max_relative = 0.00001);
+        assert_relative_eq!(Vector::from([2., 1.]).norm(), 2.236_068, max_relative = 0.00001);
+        assert_relative_eq!(Vector::from([4., 2.]).norm(), 4.472_136, max_relative = 0.00001);
+        assert_relative_eq!(Vector::from([-4., -2.]).norm(), 4.472_136, max_relative = 0.00001);
+        assert_eq!(Vector::from([0., 0.]).norm_inf()?, 0.);
+        assert_eq!(Vector::from([1., 0.]).norm_inf()?, 1.);
+        assert_eq!(Vector::from([2., 1.]).norm_inf()?, 2.);
+        assert_eq!(Vector::from([4., 2.]).norm_inf()?, 4.);
+        assert_eq!(Vector::from([-4., -2.]).norm_inf()?, 4.);
+
 
         Ok(())
     }
@@ -694,6 +730,13 @@ mod tests
         assert_eq!(round_to(d1.angle_cos(&d2)?, 1.), 1.);
         assert_eq!(e1.angle_cos(&e2)?, 0.974_631_9);
 
+        // eval sheet tests
+        assert_eq!(round_to(Vector::from([1., 0.]).angle_cos(&Vector::from([0., 1.]))?, 1.), 0.);
+        assert_relative_eq!(Vector::from([8., 7.]).angle_cos(&Vector::from([3., 2.]))?, 0.991_454_3, max_relative = 0.00001);
+        assert_eq!(round_to(Vector::from([1., 1.]).angle_cos(&Vector::from([1., 1.]))?, 1.), 1.);
+        assert_relative_eq!(Vector::from([4., 2.]).angle_cos(&Vector::from([1., 1.]))?, 0.948_683_3, max_relative = 0.00001);
+        assert_relative_eq!(Vector::from([-7., 3.]).angle_cos(&Vector::from([6., 4.]))?, -0.546_267_8, max_relative = 0.00001);
+
         Ok(())
     }
 
@@ -710,6 +753,14 @@ mod tests
         assert_eq!(a1.cross_product(&a2)?.store, [0., 1., 0.]);
         assert_eq!(b1.cross_product(&b2)?.store, [-3., 6., -3.]);
         assert_eq!(c1.cross_product(&c2)?.store, [17., -58., -16.]);
+
+        // eval sheet tests
+        assert_eq!(Vector::from([0, 0, 0]).cross_product(&Vector::from([0, 0, 0]))?.store, [0, 0, 0]);
+        assert_eq!(Vector::from([1, 0, 0]).cross_product(&Vector::from([0, 0, 0]))?.store, [0, 0, 0]);
+        assert_eq!(Vector::from([1, 0, 0]).cross_product(&Vector::from([0, 1, 0]))?.store, [0, 0, 1]);
+        assert_eq!(Vector::from([8, 7, -4]).cross_product(&Vector::from([3, 2, 1]))?.store, [15, -20, -5]);
+        assert_eq!(Vector::from([1, 1, 1]).cross_product(&Vector::from([0, 0, 0]))?.store, [0, 0, 0]);
+        assert_eq!(Vector::from([1, 1, 1]).cross_product(&Vector::from([1, 1, 1]))?.store, [0, 0, 0]);
 
         Ok(())
     }
@@ -740,6 +791,13 @@ mod tests
             ]);
 
         assert_eq!(u.trace()?, -21.0);
+
+        // eval sheet tests
+        assert_eq!(Matrix::from([[0, 0], [0, 0]]).trace()?, 0);
+        assert_eq!(Matrix::from([[1, 0], [0, 1]]).trace()?, 2);
+        assert_eq!(Matrix::from([[1, 2], [3, 4]]).trace()?, 5);
+        assert_eq!(Matrix::from([[8, -7], [4, 2]]).trace()?, 10);
+        assert_eq!(Matrix::from([[1, 0, 0], [0, 1, 0], [0, 0, 1]]).trace()?, 3);
 
         Ok(())
     }
@@ -776,9 +834,16 @@ mod tests
             [4., 4., 4.],
             ]);
         
-        assert_eq!(u.transpose()?, u_t);
-        assert_eq!(v.transpose()?, v_t);
-        assert_eq!(w.transpose()?, w_t);
+        assert_eq!(u.transpose(), u_t);
+        assert_eq!(v.transpose(), v_t);
+        assert_eq!(w.transpose(), w_t);
+
+        // eval sheet tests
+        assert_eq!(Matrix::from([[0, 0], [0, 0]]).transpose().store, [[0, 0], [0, 0]]);
+        assert_eq!(Matrix::from([[1, 0], [0, 1]]).transpose().store, [[1, 0], [0, 1]]);
+        assert_eq!(Matrix::from([[1, 2], [3, 4]]).transpose().store, [[1, 3], [2, 4]]);
+        assert_eq!(Matrix::from([[1, 0, 0], [0, 1, 0], [0, 0, 1]]).transpose().store, [[1, 0, 0], [0, 1, 0], [0, 0, 1]]);
+        assert_eq!(Matrix::from([[1, 2], [3, 4], [5, 6]]).transpose().store, [[1, 3, 5], [2, 4, 6]]);
 
 
         Ok(())
@@ -803,6 +868,14 @@ mod tests
                 assert_relative_eq!(elem_u, elem_u_ref, max_relative = 0.00001);
             }
         }
+
+        // eval sheet tests
+        assert_eq!(Matrix::from([[0, 0], [0, 0]]).row_echelon().store, [[0, 0], [0, 0]]);
+        assert_eq!(Matrix::from([[1, 0], [0, 1]]).row_echelon().store, [[1, 0], [0, 1]]);
+        assert_eq!(Matrix::from([[0, 1], [1, 0]]).row_echelon().store, [[1, 0], [0, 1]]);
+        assert_eq!(Matrix::from([[4., 2.], [2., 1.]]).row_echelon().store, [[1., 0.5], [0., 0.]]);
+        assert_eq!(Matrix::from([[-7, 2], [4, 8]]).row_echelon().store, [[1, 0], [0, 1]]);
+        assert_eq!(Matrix::from([[1, 2], [4, 8]]).row_echelon().store, [[1, 2], [0, 0]]);
         
         Ok(())
     }
@@ -890,6 +963,14 @@ mod tests
             }
         }
 
+        // eval sheet tests
+        assert_eq!(Matrix::from([[1, 0], [0, 1]]).inverse()?.store, [[1, 0], [0, 1]]);
+        assert_eq!(Matrix::from([[2., 0.], [0., 2.]]).inverse()?.store, [[0.5, 0.], [0., 0.5]]);
+        assert_eq!(Matrix::from([[0.5, 0.], [0., 0.5]]).inverse()?.store, [[2., 0.], [0., 2.]]);
+        assert_eq!(Matrix::from([[0, 1], [1, 0]]).inverse()?.store, [[0, 1], [1, 0]]);
+        assert_eq!(Matrix::from([[1., 2.], [3., 4.]]).inverse()?.store, [[-2., 1.], [1.5, -0.5]]);
+        assert_eq!(Matrix::from([[1, 0, 0], [0, 1, 0], [0, 0, 1]]).inverse()?.store, [[1, 0, 0], [0, 1, 0], [0, 0, 1]]);
+        
         Ok(())
     }
 
@@ -916,6 +997,16 @@ mod tests
         assert_eq!(a.rank(), 3);
         assert_eq!(b.rank(), 2);
         assert_eq!(c.rank(), 3);
+
+        // eval sheet tests
+        assert_eq!(Matrix::from([[0, 0], [0, 0]]).rank(), 0);
+        assert_eq!(Matrix::from([[1, 0], [0, 1]]).rank(), 2);
+        assert_eq!(Matrix::from([[2, 0], [0, 2]]).rank(), 2);
+        assert_eq!(Matrix::from([[1, 1], [1, 1]]).rank(), 1);
+        assert_eq!(Matrix::from([[0, 1], [1, 0]]).rank(), 2);
+        assert_eq!(Matrix::from([[1, 2], [3, 4]]).rank(), 2);
+        assert_eq!(Matrix::from([[-7, 5], [4, 6]]).rank(), 2);
+        assert_eq!(Matrix::from([[1, 0, 0], [0, 1, 0], [0, 0, 1]]).rank(), 3);
 
         Ok(())
     }

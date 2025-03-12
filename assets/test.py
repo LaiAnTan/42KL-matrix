@@ -20,11 +20,6 @@ def row_echelon(mat: List[List[float]]) -> List[List[float]]:
     
     # find pivot index (row) in first non zero column (first non zero element)
     pivot_idx = 0
-    for i in range(rows):
-        
-        if col(mat, first_non_zero_col_idx)[i] != 0:
-            pivot_idx = i
-            break
     
     for i in range(first_non_zero_col_idx, cols):
         
@@ -146,5 +141,14 @@ if __name__ == "__main__":
     ]
     
     print(is_identity(mat))
+
+
+    mat = [
+        [0, 1],
+        [1, 0]
+    ]
+
+    print(f"REF: {row_echelon(mat)}")
+    print(f"RREF: {reduced_echelon(mat)}")
 
 

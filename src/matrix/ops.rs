@@ -354,6 +354,17 @@ mod tests
         assert_eq!((a + b).store, [0., 42., 6.]);
         assert_eq!(c.add(&d)?.store, [0., 42., 6.]);
 
+        // eval sheet tests
+        assert_eq!((Vector::from([0, 0]) + Vector::from([0, 0])).store, [0, 0]);
+        assert_eq!((Vector::from([1, 0]) + Vector::from([0, 1])).store, [1, 1]);
+        assert_eq!((Vector::from([1, 1]) + Vector::from([1, 1])).store, [2, 2]);
+        assert_eq!((Vector::from([21, 21]) + Vector::from([21, 21])).store, [42, 42]);
+        assert_eq!((Vector::from([-21, 21]) + Vector::from([21, -21])).store, [0, 0]);
+        assert_eq!(
+            (Vector::from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) + 
+            Vector::from([9, 8, 7, 6, 5, 4, 3, 2, 1, 0])).store, 
+            [9, 9, 9, 9, 9, 9, 9, 9, 9, 9]);
+
         Ok(())
     }
 
@@ -368,6 +379,17 @@ mod tests
         assert_eq!((a - b).store, [2.0, -38.0, 0.0]);
         assert_eq!(c.sub(&d)?.store, [2.0, -38.0, 0.0]);
 
+        // eval sheet tests
+        assert_eq!((Vector::from([0, 0]) - Vector::from([0, 0])).store, [0, 0]);
+        assert_eq!((Vector::from([1, 0]) - Vector::from([0, 1])).store, [1, -1]);
+        assert_eq!((Vector::from([1, 1]) - Vector::from([1, 1])).store, [0, 0]);
+        assert_eq!((Vector::from([21, 21]) - Vector::from([21, 21])).store, [0, 0]);
+        assert_eq!((Vector::from([-21, 21]) - Vector::from([21, -21])).store, [-42, 42]);
+        assert_eq!(
+            (Vector::from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) - 
+            Vector::from([9, 8, 7, 6, 5, 4, 3, 2, 1, 0])).store, 
+            [-9, -7, -5, -3, -1, 1, 3, 5, 7, 9]);
+
         Ok(())
     }
 
@@ -379,6 +401,13 @@ mod tests
 
         assert_eq!((a * 3.).store, [0., 6.0, 9.0]);
         assert_eq!(b.scl(3.)?.store, [0., 6.0, 9.0]);
+
+        // eval sheet tests
+        assert_eq!((Vector::from([0, 0]) * 1).store, [0, 0]);
+        assert_eq!((Vector::from([1, 0]) * 1).store, [1, 0]);
+        assert_eq!((Vector::from([1, 1]) * 2).store, [2, 2]);
+        assert_eq!((Vector::from([21, 21]) * 2).store, [42, 42]);
+        assert_eq!((Vector::from([42., 42.]) * 0.5).store, [21., 21.]);
 
         Ok(())
     }
@@ -404,6 +433,57 @@ mod tests
             [-2., 0.],
         ]);
 
+        // eval sheet tests
+        assert_eq!((Matrix::from([
+                [0, 0],
+                [0, 0],
+            ]) + Matrix::from([
+                [0, 0],
+                [0, 0],
+            ])).store,
+            [
+                [0, 0],
+                [0, 0]
+            ]
+        );
+        assert_eq!((Matrix::from([
+                [1, 0],
+                [0, 1],
+            ]) + Matrix::from([
+                [0, 0],
+                [0, 0],
+            ])).store,
+            [
+                [1, 0],
+                [0, 1]
+            ]
+        );
+        assert_eq!((Matrix::from([
+                [1, 1],
+                [1, 1],
+            ]) + Matrix::from([
+                [1, 1],
+                [1, 1],
+            ])).store,
+            [
+                [2, 2],
+                [2, 2]
+            ]
+        );
+        assert_eq!((Matrix::from([
+                [21, 21],
+                [21, 21],
+            ]) + Matrix::from([
+                [21, 21],
+                [21, 21],
+            ])).store,
+            [
+                [42, 42],
+                [42, 42]
+            ]
+        );
+    
+
         Ok(())
     }
 
@@ -428,6 +508,56 @@ mod tests
             [2., -6.],
         ]);
 
+        // eval sheet tests
+        assert_eq!((Matrix::from([
+                [0, 0],
+                [0, 0],
+            ]) - Matrix::from([
+                [0, 0],
+                [0, 0],
+            ])).store,
+            [
+                [0, 0],
+                [0, 0]
+            ]
+        );
+        assert_eq!((Matrix::from([
+                [1, 0],
+                [0, 1],
+            ]) - Matrix::from([
+                [0, 0],
+                [0, 0],
+            ])).store,
+            [
+                [1, 0],
+                [0, 1]
+            ]
+        );
+        assert_eq!((Matrix::from([
+                [1, 1],
+                [1, 1],
+            ]) - Matrix::from([
+                [1, 1],
+                [1, 1],
+            ])).store,
+            [
+                [0, 0],
+                [0, 0]
+            ]
+        );
+        assert_eq!((Matrix::from([
+                [21, 21],
+                [21, 21],
+            ]) - Matrix::from([
+                [21, 21],
+                [21, 21],
+            ])).store,
+            [
+                [0, 0],
+                [0, 0]
+            ]
+        );
+
         Ok(())
     }
 
@@ -447,6 +577,45 @@ mod tests
             [3., 6.],
             [0., -9.],
         ]);
+
+        // eval sheet tests
+        assert_eq!((Matrix::from([
+                [0, 0],
+                [0, 0],
+            ]).scl(0))?.store,
+            [
+                [0, 0],
+                [0, 0]
+            ]
+        );
+        assert_eq!((Matrix::from([
+                [1, 0],
+                [0, 1],
+            ]) * 1).store,
+            [
+                [1, 0],
+                [0, 1]
+            ]
+        );
+        assert_eq!((Matrix::from([
+                [1, 2],
+                [3, 4],
+            ]) * 2).store,
+            [
+                [2, 4],
+                [6, 8]
+            ]
+        );
+        assert_eq!((Matrix::from([
+                [21., 21.],
+                [21., 21.],
+            ]) * 0.5).store,
+            [
+                [10.5, 10.5],
+                [10.5, 10.5]
+            ]
+        );
+    
 
         Ok(())
     }
@@ -474,6 +643,13 @@ mod tests
         assert_eq!(c.mul_vec(&d)?.store, [8., 4.]);
         assert_eq!((e.clone() * f.clone()).store, [4., -4.]);
         assert_eq!(e.mul_vec(&f)?.store, [4., -4.]);
+
+        // eval sheet tests
+        assert_eq!(Matrix::from([[0, 0], [0, 0]]).mul_vec(&Vector::from([1, 1]))?.store, [0, 0]);
+        assert_eq!(Matrix::from([[1, 0], [0, 1]]).mul_vec(&Vector::from([1, 1]))?.store, [1, 1]);
+        assert_eq!(Matrix::from([[1, 1], [1, 1]]).mul_vec(&Vector::from([4, 2]))?.store, [6, 6]);
+        assert_eq!(Matrix::from([[2, 0], [0, 2]]).mul_vec(&Vector::from([2, 1]))?.store, [4, 2]);
+        assert_eq!(Matrix::from([[0.5, 0.], [0., 0.5]]).mul_vec(&Vector::from([4., 2.]))?.store, [2., 1.]);
 
         Ok(())
     }

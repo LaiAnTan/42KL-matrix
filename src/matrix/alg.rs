@@ -27,7 +27,7 @@ where
 
     let mut result: Vector<K> = Vector {size: u[0].size,  store: vec![K::zero(); u[0].size]};
 
-    for (i, vec) in u.iter().enumerate()
+    for (i, vec) in u.iter().enumerate() // O(n)
     {
         for (j, &val) in vec.store.iter().enumerate()
         {
@@ -48,6 +48,7 @@ where
     <V as Sub>::Output: Mul<T, Output = V>,
     T: Float,
 {
+    // O(subtract) = O(n)
     (v - u.clone()).mul_add(t, u)
 }
 
@@ -73,6 +74,7 @@ where
             return Err(errors::VectorError)
         }
 
+        // O(n)
         let res = self.store.iter().zip(v.store.iter())
             .fold(K::zero(), |acc, (&i, &j)| i.mul_add(j, acc));
 
@@ -120,6 +122,7 @@ where
         V: PartialOrd
             + Sum<V>
     {
+        // O(n)
         self.store.iter().filter_map(|&x| abs(x).ok()).sum()
     }
 
@@ -129,6 +132,8 @@ where
         f32: Into<V>
             + Sum<V>,
     {
+        // O(n), does not use forbidden sqrt()
+
         let magnitude_squared_sum = self.store.iter().map(|&x| x * x)
                                             .sum();
         let inv_sqrt = fi_sqrt(&magnitude_squared_sum);
@@ -141,6 +146,7 @@ where
         V: TotalOrder 
             + PartialOrd
     {
+        // O(n)
         // calculate absolute maximum
         let result = self.store.iter()
             .filter_map(|&x| abs(x).ok())
@@ -171,6 +177,7 @@ where
             + Sum<K>,
         f32: Into<K> + Sum<K>,
     {
+        // O(n)
         Ok(self.dot(v)? / (self.norm() * v.norm()))
     }
 }
@@ -220,6 +227,7 @@ where
             return Err(MatrixError)
         }
 
+        // O(n)
         let trace: K = self.store.iter().enumerate()
             .map(|(i, row)| row[i])
             .sum();
@@ -240,6 +248,7 @@ where
     where
         K: std::iter::Sum
     {
+        // complexity depends on what N is, but it alwas follows subject's specs
         self.store = (0..self.columns)
             .map(|index| self.col(index))
             .collect();
@@ -322,7 +331,7 @@ where
             pi += 1;
         }
 
-        // -- reduced row echelon form starts here --
+        // -- reduced row echelon form starts here -- O(n^3) time complexity
         for ri in (1..self.rows).rev()
         {
 
@@ -376,8 +385,11 @@ where
         Ok(self)
     }
 
+    
     fn det_aux(&mut self, size: usize) -> Result<K, ()>
     {
+        // alternative method, laplace expansion w/ O(n!) time complexity
+
         /*
         when A is 2x2 matrix
         [a b]
@@ -407,18 +419,82 @@ where
 
     }
 
+    fn det_gaussian(&self) -> Result<K, ()>
+    where
+        K: PartialEq + FromPrimitive + Div<Output = K> + Sub<Output = K> + std::fmt::Debug,
+    {
+        let mut aux = self.clone();
+
+         // find index of first non zero column
+         let start_ci: usize = match (0..aux.columns)
+        .find(|index| aux.col(*index).iter().any(|item| *item != K::zero()))
+        {
+            Some(x) => x,
+            None => return Ok(K::zero()),
+        };
+
+        let mut pi = 0;
+
+        // O(n^3)
+        for ci in start_ci..aux.columns
+        {
+            if pi == self.rows
+            {
+                break
+            }
+            
+            // if pivot is zero we perform a row swap if possible
+            if aux.store[pi][ci] == K::zero()
+            {
+                match (pi + 1..aux.rows).find(|&i| aux.store[i][ci] != K::zero())
+                {
+                    Some(swap_row) => aux.store.swap(pi, swap_row),
+                    None => continue,
+                };
+            }
+
+            /*
+            make every row after pivot 0
+            row[ci] => element for each row below the pivot
+            */
+            let pivot_clone = aux.store[pi].clone();
+
+            aux.store.iter_mut()
+                .skip(pi + 1)
+                .filter(|row| row[ci] != K::zero())
+                .for_each(|row| {
+                    // scale below pivot == 0
+                    // new row = row - (scalar * pivot row)
+                    // eg: 5 - (5 * 1) = 0
+                    *row = row.iter().enumerate()
+                        
+                        .map(|(j, &ej)| ej - (row[ci] * pivot_clone[j]))
+                        .collect::<Vec<K>>();
+                });
+
+            pi += 1;
+        }
+
+        let det = (0..aux.rows).fold(K::one(), |total, r| total * aux.store[r][r]);
+
+        Ok(det)
+    }
+
     pub fn determinant(&self) -> Result<K, MatrixError>
+    where
+        K: PartialEq + FromPrimitive + Div<Output = K> + Sub<Output = K> + std::fmt::Debug,
     {
         if !self.is_square()
         {
             return Err(MatrixError);
         }
 
-        Ok(self.clone().det_aux(self.rows).unwrap())
+        Ok(self.clone().det_gaussian().unwrap())
+        // Ok(self.clone().det_aux(self.rows).unwrap())
     }
 }
 
-// --- ex12: Inverse ---
+// --- ex12: Inverse --- 
 
 impl<K> Matrix::<K>
 where
@@ -504,9 +580,6 @@ where
 
             pi += 1;
         }
-
-        println!("A: {:?}", self.store);
-        println!("I: {:?}", inv.store);
 
         // -- reduced row echelon form starts here --
         for ri in (1..self.rows).rev()
